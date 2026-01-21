@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model user {
+  id            String   @unique
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  account account[]
+  session session[]
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+
+  @@index([identifier])
+}
+
+enum EncounterType {
+  OPD
+  IPD
+  EMERGENCY
+}
+
+enum EncounterStatus {
+  ACTIVE
+  TRANSFERRED
+  DISCHARGED
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+}
+
+// ==============================
+// MODELS
+// ==============================
+
+model Patient {
+  id           String   @id @default(uuid())
+  uhid         String   @unique
+  name         String
+  dob          DateTime
+  gender       String
+  contact      String?
+  aadhaarLast4 String?
+  isTemporary  Boolean  @default(false)
+
+  mergedIntoPatientId String?
+  mergedIntoPatient   Patient?  @relation("PatientMerge", fields: [mergedIntoPatientId], references: [id])
+  mergedPatients      Patient[] @relation("PatientMerge")
+
+  createdAt DateTime @default(now())
+
+  encounters  Encounter[]
+  idDocuments PatientIdDocument[]
+}
+
+model PatientIdDocument {
+  id             String  @id @default(uuid())
+  patientId      String
+  documentType   String
+  documentNumber String?
+  fileUrl        String?
+  verified       Boolean @default(false)
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+}
+
+model Encounter {
+  id        String @id @default(uuid())
+  patientId String
+
+  type   EncounterType
+  status EncounterStatus @default(ACTIVE)
+
+  primaryDoctorId String?
+  triageColor     String?
+
+  admissionTime DateTime  @default(now())
+  dischargeTime DateTime?
+
+  medicoLegalFlag Boolean @default(false)
+
+  patient        Patient         @relation(fields: [patientId], references: [id])
+  bedAssignments BedAssignment[]
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+}
+
+model Bed {
+  id     String    @id @default(uuid())
+  ward   String
+  type   String
+  status BedStatus @default(AVAILABLE)
+
+  assignments BedAssignment[]
+}
+
+model BedAssignment {
+  id          String @id @default(uuid())
+  encounterId String
+  bedId       String
+
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+
+  encounter Encounter @relation(fields: [encounterId], references: [id])
+  bed       Bed       @relation(fields: [bedId], references: [id])
+
+  @@index([encounterId])
+  @@index([bedId])
+}
+
+model AuditEvent {
+  id          String @id @default(uuid())
+  entityType  String
+  entityId    String
+  action      String
+  performedBy String
+  metadata    Json?
+
+  timestamp DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
