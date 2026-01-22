@@ -73,14 +73,14 @@ export const navigationConfig: NavGroup[] = [
         title: 'Clinical',
         items: [
             {
-                title: 'Doctor Dashboard',
+                title: 'Doctor Workstation',
                 href: '/doctor',
                 icon: Stethoscope,
                 roles: ['admin', 'doctor'],
             },
             {
-                title: 'Nursing Station',
-                href: '/nursing',
+                title: 'Nurse Station',
+                href: '/nurse',
                 icon: Heart,
                 roles: ['admin', 'nurse'],
             },
@@ -89,7 +89,7 @@ export const navigationConfig: NavGroup[] = [
                 href: '/emergency',
                 icon: Ambulance,
                 roles: ['admin', 'doctor', 'nurse', 'front_desk'],
-                badge: '5',
+                badge: '!',
                 badgeType: 'critical',
             },
         ],
@@ -102,8 +102,6 @@ export const navigationConfig: NavGroup[] = [
                 href: '/lab',
                 icon: FlaskConical,
                 roles: ['admin', 'doctor', 'nurse', 'lab_technician'],
-                badge: '3',
-                badgeType: 'warning',
             },
         ],
     },
@@ -151,7 +149,7 @@ export const navigationConfig: NavGroup[] = [
                 roles: ['admin', 'billing', 'front_desk'],
             },
             {
-                title: 'Insurance',
+                title: 'Insurance & Claims',
                 href: '/insurance',
                 icon: Shield,
                 roles: ['admin', 'billing'],
@@ -162,8 +160,8 @@ export const navigationConfig: NavGroup[] = [
         title: 'Quality & Safety',
         items: [
             {
-                title: 'Risk & Incidents',
-                href: '/incidents',
+                title: 'Safety Dashboard',
+                href: '/safety',
                 icon: AlertTriangle,
                 roles: ['admin', 'doctor', 'nurse', 'management'],
             },

@@ -1,66 +1,124 @@
 "use client";
 
-import React from 'react';
-import { kpiData } from '@/data/mockData';
-import { useAuth, roleNames } from '@/context/AuthContext';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import {
     Bed, Users, Stethoscope, AlertTriangle, FlaskConical,
     Receipt, TrendingUp, Clock, Activity, ArrowUpRight,
-    Calendar, HeartPulse, Pill, ChevronRight
+    Calendar, HeartPulse, Pill, ChevronRight, RefreshCw, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface DashboardData {
+    beds: {
+        total: number;
+        available: number;
+        occupied: number;
+        cleaning: number;
+        maintenance: number;
+        occupancyRate: number;
+    };
+    encounters: {
+        opd: number;
+        ipd: number;
+        emergency: number;
+    };
+    todayAdmissions: number;
+    todayDischarges: number;
+    pendingOrders: number;
+    criticalAlerts: number;
+    lowStockCount: number;
+    staffOnDuty: {
+        morning: number;
+        evening: number;
+        night: number;
+        total: number;
+    };
+    recentIncidents: number;
+    surgeriesToday: number;
+    lastUpdated: string;
+}
+
 export default function DashboardPage() {
     const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [data, setData] = useState<DashboardData | null>(null);
+
+    const fetchDashboard = async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
+
+        try {
+            const response = await fetch('/api/dashboard');
+            const result = await response.json();
+            if (result.data) setData(result.data);
+        } catch (error) {
+            console.error('Failed to fetch dashboard:', error);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDashboard();
+        const interval = setInterval(() => fetchDashboard(true), 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     const stats = [
         {
             title: 'Bed Occupancy',
-            value: `${kpiData.bedOccupancy}%`,
+            value: `${data?.beds.occupancyRate || 0}%`,
             icon: Bed,
             color: 'from-primary/80 to-teal-600/80',
-            bgColor: 'bg-primary/10',
-            change: '+2.5%',
+            change: `${data?.beds.available || 0} available`,
             positive: true
         },
         {
             title: 'Today Admissions',
-            value: kpiData.todayAdmissions,
+            value: data?.todayAdmissions || 0,
             icon: Users,
             color: 'from-green-500 to-emerald-600',
-            bgColor: 'bg-status-success/10',
-            change: '+12',
+            change: `${data?.todayDischarges || 0} discharged`,
             positive: true
         },
         {
-            title: 'OPD Visits',
-            value: kpiData.opdVisits,
+            title: 'Active Encounters',
+            value: (data?.encounters.opd || 0) + (data?.encounters.ipd || 0) + (data?.encounters.emergency || 0),
             icon: Stethoscope,
             color: 'from-blue-500 to-cyan-600',
-            bgColor: 'bg-status-info/10',
-            change: '+8%',
+            change: `${data?.encounters.emergency || 0} emergency`,
             positive: true
         },
         {
-            title: 'Critical Patients',
-            value: kpiData.criticalPatients,
+            title: 'Critical Alerts',
+            value: data?.criticalAlerts || 0,
             icon: AlertTriangle,
             color: 'from-red-500 to-rose-600',
-            bgColor: 'bg-status-critical/10',
-            change: '-1',
-            positive: true
+            change: 'Unacknowledged',
+            positive: false
         },
     ];
 
     const secondaryStats = [
-        { title: 'Pending Labs', value: kpiData.pendingLabTests, icon: FlaskConical, color: 'text-status-warning' },
-        { title: 'Pending Bills', value: kpiData.pendingBills, icon: Receipt, color: 'text-status-pending' },
-        { title: "Today's Revenue", value: `₹${(kpiData.revenue.today / 1000).toFixed(0)}K`, icon: TrendingUp, color: 'text-status-success' },
-        { title: 'Avg Wait Time', value: `${kpiData.averageWaitTime} min`, icon: Clock, color: 'text-muted-foreground' },
+        { title: 'Pending Orders', value: data?.pendingOrders || 0, icon: FlaskConical, color: 'text-status-warning' },
+        { title: 'Low Stock Items', value: data?.lowStockCount || 0, icon: Receipt, color: 'text-status-pending' },
+        { title: 'Surgeries Today', value: data?.surgeriesToday || 0, icon: TrendingUp, color: 'text-status-success' },
+        { title: 'Recent Incidents', value: data?.recentIncidents || 0, icon: Clock, color: 'text-muted-foreground' },
     ];
 
     const quickActions = [
-        { title: 'New Patient', icon: Users, href: '/patients/register' },
+        { title: 'New Patient', icon: Users, href: '/registration' },
         { title: 'View Beds', icon: Bed, href: '/beds' },
         { title: 'Lab Results', icon: FlaskConical, href: '/lab' },
         { title: 'Pharmacy', icon: Pill, href: '/pharmacy' },
@@ -68,18 +126,23 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8 animate-fade-in">
-            {/* Welcome Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
-                    <h1 className="text-xl font-semibold tracking-tight">
-                        Dashboard
-                    </h1>
+                    <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
                     <p className="text-sm text-neutral-500 mt-1">
                         Welcome back. Here&apos;s what&apos;s happening today.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => fetchDashboard(true)}
+                        className="pill-badge cursor-pointer hover:bg-neutral-200 transition-colors"
+                        disabled={refreshing}
+                    >
+                        <RefreshCw className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")} />
+                        Refresh
+                    </button>
                     <div className="pill-badge">
                         <Calendar className="w-4 h-4 mr-2" />
                         {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
@@ -91,7 +154,6 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Main Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.map((stat, index) => (
                     <div
@@ -120,7 +182,6 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Secondary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {secondaryStats.map((stat) => (
                     <div key={stat.title} className="kpi-card flex items-center gap-4">
@@ -135,24 +196,20 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Bottom Section */}
             <div className="grid lg:grid-cols-3 gap-6">
-                {/* Staff on Duty */}
                 <div className="floating-card">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
                             <Activity className="w-5 h-5 text-primary" />
                             Staff on Duty
                         </h3>
-                        <button className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
-                            View All <ChevronRight className="w-3 h-3" />
-                        </button>
+                        <span className="text-xs text-muted-foreground">{data?.staffOnDuty.total || 0} total</span>
                     </div>
                     <div className="space-y-4">
                         {[
-                            { label: 'Doctors', value: kpiData.staffOnDuty.doctors, color: 'bg-primary' },
-                            { label: 'Nurses', value: kpiData.staffOnDuty.nurses, color: 'bg-status-success' },
-                            { label: 'Support Staff', value: kpiData.staffOnDuty.support, color: 'bg-status-info' },
+                            { label: 'Morning Shift', value: data?.staffOnDuty.morning || 0, color: 'bg-primary' },
+                            { label: 'Evening Shift', value: data?.staffOnDuty.evening || 0, color: 'bg-status-success' },
+                            { label: 'Night Shift', value: data?.staffOnDuty.night || 0, color: 'bg-status-info' },
                         ].map((item) => (
                             <div key={item.label} className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -165,7 +222,6 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Alerts */}
                 <div className="floating-card">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
@@ -173,50 +229,56 @@ export default function DashboardPage() {
                             Active Alerts
                         </h3>
                         <span className="status-badge bg-status-critical/10 text-status-critical">
-                            {kpiData.criticalPatients + kpiData.lowStockItems} total
+                            {(data?.criticalAlerts || 0) + (data?.lowStockCount || 0)} total
                         </span>
                     </div>
                     <div className="space-y-3">
                         <div className="p-3 bg-status-critical/5 rounded-xl border border-status-critical/20">
                             <div className="flex items-center gap-2 text-status-critical font-medium text-sm mb-1">
                                 <div className="w-2 h-2 rounded-full bg-status-critical animate-pulse" />
-                                Critical Patients
+                                Critical Alerts
                             </div>
-                            <p className="text-xs text-muted-foreground">{kpiData.criticalPatients} patients require immediate attention</p>
+                            <p className="text-xs text-muted-foreground">{data?.criticalAlerts || 0} alerts require immediate attention</p>
                         </div>
                         <div className="p-3 bg-status-warning/5 rounded-xl border border-status-warning/20">
                             <div className="flex items-center gap-2 text-status-warning font-medium text-sm mb-1">
                                 <div className="w-2 h-2 rounded-full bg-status-warning" />
                                 Low Stock Alert
                             </div>
-                            <p className="text-xs text-muted-foreground">{kpiData.lowStockItems} items below threshold</p>
+                            <p className="text-xs text-muted-foreground">{data?.lowStockCount || 0} items below threshold</p>
                         </div>
                         <div className="p-3 bg-status-info/5 rounded-xl border border-status-info/20">
                             <div className="flex items-center gap-2 text-status-info font-medium text-sm mb-1">
                                 <div className="w-2 h-2 rounded-full bg-status-info" />
-                                Pending Claims
+                                Pending Orders
                             </div>
-                            <p className="text-xs text-muted-foreground">{kpiData.pendingInsuranceClaims} insurance claims awaiting</p>
+                            <p className="text-xs text-muted-foreground">{data?.pendingOrders || 0} orders awaiting processing</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Quick Actions */}
                 <div className="floating-card">
                     <h3 className="font-serif text-lg font-semibold mb-6">Quick Actions</h3>
                     <div className="grid grid-cols-2 gap-3">
                         {quickActions.map((action) => (
-                            <button
+                            <a
                                 key={action.title}
+                                href={action.href}
                                 className="flex flex-col items-center justify-center p-4 rounded-xl bg-neutral-100/50 hover:bg-neutral-200 transition-colors group"
                             >
                                 <action.icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                                 <span className="text-xs font-medium text-foreground">{action.title}</span>
-                            </button>
+                            </a>
                         ))}
                     </div>
                 </div>
             </div>
+
+            {data?.lastUpdated && (
+                <p className="text-xs text-muted-foreground text-center">
+                    Last updated: {new Date(data.lastUpdated).toLocaleTimeString()}
+                </p>
+            )}
         </div>
     );
 }

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
+    "db:reset": "npx prisma migrate reset --force"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
