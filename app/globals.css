@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -25,6 +27,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -37,6 +40,33 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  
+  /* Status colors */
+  --color-status-critical: var(--status-critical);
+  --color-status-critical-foreground: var(--status-critical-foreground);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-success: var(--status-success);
+  --color-status-success-foreground: var(--status-success-foreground);
+  --color-status-info: var(--status-info);
+  --color-status-info-foreground: var(--status-info-foreground);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-foreground: var(--status-pending-foreground);
+  
+  /* Triage colors */
+  --color-triage-immediate: var(--triage-immediate);
+  --color-triage-urgent: var(--triage-urgent);
+  --color-triage-delayed: var(--triage-delayed);
+  --color-triage-minor: var(--triage-minor);
+  --color-triage-deceased: var(--triage-deceased);
+  
+  /* Bed status colors */
+  --color-bed-available: var(--bed-available);
+  --color-bed-occupied: var(--bed-occupied);
+  --color-bed-reserved: var(--bed-reserved);
+  --color-bed-cleaning: var(--bed-cleaning);
+  --color-bed-maintenance: var(--bed-maintenance);
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -47,72 +77,129 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --radius: 1rem;
+  
+  /* Modern Medical Teal - Inspired by Medpolis */
+  --primary: hsl(187 72% 50%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Clean White Background */
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(220 20% 20%);
+
+  /* Cards & Surfaces */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(220 20% 20%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(220 20% 20%);
+
+  /* Secondary - Soft Teal Tint */
+  --secondary: hsl(187 30% 96%);
+  --secondary-foreground: hsl(187 72% 35%);
+
+  /* Muted - Soft Gray */
+  --muted: hsl(220 14% 96%);
+  --muted-foreground: hsl(220 10% 50%);
+
+  /* Accent - Light Teal */
+  --accent: hsl(187 50% 94%);
+  --accent-foreground: hsl(187 72% 35%);
+
+  /* Destructive - Medical Red */
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* Border & Input */
+  --border: hsl(220 14% 90%);
+  --input: hsl(220 14% 90%);
+  --ring: hsl(187 72% 50%);
+
+  /* Chart Colors */
+  --chart-1: hsl(187 72% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(45 93% 47%);
+  --chart-4: hsl(280 60% 50%);
+  --chart-5: hsl(0 84% 60%);
+
+  /* Hospital Status Colors */
+  --status-critical: hsl(0 84% 60%);
+  --status-critical-foreground: hsl(0 0% 100%);
+  
+  --status-warning: hsl(45 93% 47%);
+  --status-warning-foreground: hsl(0 0% 10%);
+  
+  --status-success: hsl(160 70% 42%);
+  --status-success-foreground: hsl(0 0% 100%);
+  
+  --status-info: hsl(187 72% 50%);
+  --status-info-foreground: hsl(0 0% 100%);
+  
+  --status-pending: hsl(270 60% 55%);
+  --status-pending-foreground: hsl(0 0% 100%);
+
+  /* Triage Colors (Emergency) */
+  --triage-immediate: hsl(0 84% 50%);
+  --triage-urgent: hsl(30 100% 50%);
+  --triage-delayed: hsl(45 100% 51%);
+  --triage-minor: hsl(160 70% 42%);
+  --triage-deceased: hsl(0 0% 30%);
+
+  /* Bed Status */
+  --bed-available: hsl(160 70% 42%);
+  --bed-occupied: hsl(187 72% 50%);
+  --bed-reserved: hsl(45 93% 47%);
+  --bed-cleaning: hsl(0 84% 60%);
+  --bed-maintenance: hsl(0 0% 50%);
+
+  /* Modern Light Sidebar */
+  --sidebar: hsl(220 20% 18%);
+  --sidebar-foreground: hsl(220 14% 95%);
+  --sidebar-primary: hsl(187 72% 50%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 20% 25%);
+  --sidebar-accent-foreground: hsl(0 0% 100%);
+  --sidebar-border: hsl(220 20% 25%);
+  --sidebar-ring: hsl(187 72% 50%);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --background: hsl(222 47% 8%);
+  --foreground: hsl(210 20% 98%);
+
+  --card: hsl(222 47% 11%);
+  --card-foreground: hsl(210 20% 98%);
+
+  --popover: hsl(222 47% 11%);
+  --popover-foreground: hsl(210 20% 98%);
+
+  --primary: hsl(187 72% 50%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(222 47% 18%);
+  --secondary-foreground: hsl(210 20% 98%);
+
+  --muted: hsl(222 47% 18%);
+  --muted-foreground: hsl(215 20% 65%);
+
+  --accent: hsl(222 47% 18%);
+  --accent-foreground: hsl(187 72% 60%);
+
+  --destructive: hsl(0 62% 50%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  --border: hsl(222 47% 18%);
+  --input: hsl(222 47% 18%);
+  --ring: hsl(187 72% 50%);
+
+  --sidebar: hsl(220 20% 12%);
+  --sidebar-foreground: hsl(220 14% 95%);
+  --sidebar-primary: hsl(187 72% 50%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 20% 20%);
+  --sidebar-accent-foreground: hsl(0 0% 100%);
+  --sidebar-border: hsl(220 20% 20%);
+  --sidebar-ring: hsl(187 72% 50%);
 }
 
 @layer base {
@@ -120,6 +207,185 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
   }
+  h1, h2, h3 {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Hospital-specific utility classes */
+@layer components {
+  .hospital-card {
+    @apply bg-card rounded-2xl border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 p-6;
+  }
+  
+  .floating-card {
+    @apply bg-card rounded-2xl border-0 p-6 transition-all duration-300;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.06);
+  }
+  
+  .floating-card:hover {
+    box-shadow: 0 8px 40px rgb(0 0 0 / 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 shadow-lg p-6;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide;
+  }
+  
+  .pill-badge {
+    @apply inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-secondary text-secondary-foreground;
+  }
+  
+  .triage-badge {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-sm shadow-lg;
+  }
+  
+  .module-header {
+    @apply text-3xl font-semibold text-foreground mb-6 tracking-tight;
+  }
+  
+  .section-title {
+    @apply text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-4;
+  }
+  
+  .form-section {
+    @apply bg-card rounded-2xl border border-border/50 p-8 space-y-6 shadow-sm;
+  }
+  
+  .data-table {
+    @apply w-full border-collapse;
+  }
+  
+  .data-table th {
+    @apply text-left p-4 bg-muted/50 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-b;
+  }
+  
+  .data-table td {
+    @apply p-4 border-b border-border/50 text-sm;
+  }
+  
+  .data-table tr:hover {
+    @apply bg-accent/30;
+  }
+  
+  .kpi-card {
+    @apply bg-card rounded-2xl border-0 p-6 transition-all duration-300;
+    box-shadow: 0 4px 20px rgb(0 0 0 / 0.05);
+  }
+  
+  .kpi-card:hover {
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.08);
+  }
+  
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200;
+  }
+  
+  .nav-item-active {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+    box-shadow: 0 4px 12px hsl(187 72% 50% / 0.25);
+  }
+  
+  .nav-item:hover:not(.nav-item-active) {
+    @apply bg-sidebar-accent/70;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+  }
+  
+  .hero-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    @apply text-5xl md:text-6xl font-semibold tracking-tight leading-tight;
+  }
+  
+  .accent-dot {
+    @apply inline-block w-2 h-2 rounded-full bg-primary ml-1;
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  }
+  
+  .shadow-lift {
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
+  }
+  
+  .shadow-panel {
+    box-shadow: 0 12px 40px rgb(15 23 42 / 0.08);
+  }
+}
+
+/* Modern Pill Tabs */
+@layer components {
+  .pill-tabs {
+    @apply inline-flex items-center gap-1 p-1.5 bg-muted/50 rounded-full;
+  }
+  
+  .pill-tab {
+    @apply px-5 py-2 rounded-full text-sm font-medium text-muted-foreground transition-all duration-200;
+  }
+  
+  .pill-tab-active {
+    @apply bg-primary text-primary-foreground shadow-md;
+  }
+  
+  .pill-tab:hover:not(.pill-tab-active) {
+    @apply text-foreground bg-white/50;
+  }
+}
+
+/* Elegant Input Styling */
+@layer components {
+  .elegant-input {
+    @apply w-full px-4 py-3 rounded-xl border border-border/50 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 text-sm;
+  }
+  
+  .elegant-select {
+    @apply w-full px-4 py-3 rounded-xl border border-border/50 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 text-sm appearance-none;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* Smooth animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
 }
