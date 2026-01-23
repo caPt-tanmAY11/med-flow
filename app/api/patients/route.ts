@@ -66,19 +66,31 @@ export async function GET(request: NextRequest) {
                     _count: {
                         select: { encounters: true },
                     },
+                    allergies: {
+                        where: { isActive: true },
+                        select: {
+                            id: true,
+                            allergen: true,
+                            allergenType: true,
+                            severity: true,
+                            reaction: true,
+                        },
+                    },
+                    idDocuments: {
+                        select: {
+                            id: true,
+                            documentType: true,
+                            documentNumber: true,
+                            verified: true,
+                        },
+                    },
                 },
             }),
             prisma.patient.count({ where }),
         ]);
 
-        // Transform to include empty allergies array for compatibility
-        const patientsWithAllergies = patients.map(p => ({
-            ...p,
-            allergies: [],
-        }));
-
         return NextResponse.json({
-            data: patientsWithAllergies,
+            data: patients,
             pagination: {
                 page,
                 limit,
@@ -142,7 +154,11 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // Create patient with only fields that exist in current schema
+        // Normalize name and hash phone for duplicate detection
+        const nameNormalized = data.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const phoneHash = data.contact ? data.contact.replace(/[^0-9]/g, '').slice(-10) : null;
+
+        // Create patient with ALL fields from the schema
         const patient = await prisma.patient.create({
             data: {
                 uhid,
@@ -150,23 +166,69 @@ export async function POST(request: NextRequest) {
                 dob: data.dob,
                 gender: data.gender as 'MALE' | 'FEMALE' | 'OTHER',
                 contact: data.contact,
+                email: data.email || null,
                 aadhaarLast4: data.aadhaarLast4,
+                // Extended demographics
+                address: data.address,
+                city: data.city,
+                state: data.state,
+                pincode: data.pincode,
+                bloodGroup: data.bloodGroup,
+                // Emergency contact
+                emergencyName: data.emergencyName,
+                emergencyContact: data.emergencyContact,
+                emergencyRelation: data.emergencyRelation,
+                // Duplicate detection fields
+                phoneHash,
+                nameNormalized,
+                // Temporary registration
                 isTemporary: data.isTemporary,
+                tempExpiresAt: data.isTemporary ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null, // 24 hours
             },
         });
 
-        // Create audit event with only fields that exist
+        // Create allergies if provided
+        const createdAllergies = [];
+        if (data.allergies && data.allergies.length > 0) {
+            for (const allergy of data.allergies) {
+                const created = await prisma.allergy.create({
+                    data: {
+                        patientId: patient.id,
+                        allergen: allergy.allergen,
+                        allergenType: allergy.allergenType,
+                        severity: allergy.severity,
+                        reaction: allergy.reaction,
+                    },
+                });
+                createdAllergies.push(created);
+            }
+        }
+
+        // Create ID document if provided
+        if (data.idType && data.idNumber) {
+            await prisma.patientIdDocument.create({
+                data: {
+                    patientId: patient.id,
+                    documentType: data.idType,
+                    documentNumber: data.idNumber,
+                    verified: false,
+                },
+            });
+        }
+
+        // Create audit event
         await prisma.auditEvent.create({
             data: {
                 entityType: 'Patient',
                 entityId: patient.id,
                 action: 'create',
                 performedBy: 'system',
+                newValues: { uhid, name: data.name, isTemporary: data.isTemporary },
             },
         });
 
         return NextResponse.json({
-            data: { ...patient, allergies: [] },
+            data: { ...patient, allergies: createdAllergies },
             duplicates: duplicates.length > 0 ? duplicates : undefined,
             message: duplicates.length > 0
                 ? 'Patient created with potential duplicates detected'

@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DIRECT_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ==============================
@@ -50,6 +50,12 @@ model session {
   @@index([userId])
 }
 
+enum ROLE {
+  DOCTOR
+  NURSE
+  LAB_PERSON
+}
+
 model user {
   id            String   @unique
   name          String
@@ -58,6 +64,7 @@ model user {
   image         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime
+  role          ROLE     @default(DOCTOR)
 
   account   account[]
   session   session[]

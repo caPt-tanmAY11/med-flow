@@ -315,18 +315,444 @@ async function main() {
     }
     console.log(`  ✓ Created clinical notes`);
 
+    // Create Medications
+    console.log('Creating medications...');
+    const medications = [
+        { name: 'Paracetamol 500mg', genericName: 'Paracetamol', category: 'analgesic', form: 'tablet', strength: '500mg', manufacturer: 'Cipla' },
+        { name: 'Amoxicillin 250mg', genericName: 'Amoxicillin', category: 'antibiotic', form: 'capsule', strength: '250mg', manufacturer: 'Ranbaxy' },
+        { name: 'Omeprazole 20mg', genericName: 'Omeprazole', category: 'antacid', form: 'capsule', strength: '20mg', manufacturer: 'Sun Pharma' },
+        { name: 'Metformin 500mg', genericName: 'Metformin', category: 'antidiabetic', form: 'tablet', strength: '500mg', manufacturer: 'USV' },
+        { name: 'Amlodipine 5mg', genericName: 'Amlodipine', category: 'antihypertensive', form: 'tablet', strength: '5mg', manufacturer: 'Torrent' },
+        { name: 'Atorvastatin 10mg', genericName: 'Atorvastatin', category: 'statin', form: 'tablet', strength: '10mg', manufacturer: 'Pfizer' },
+        { name: 'Insulin Glargine', genericName: 'Insulin', category: 'antidiabetic', form: 'injection', strength: '100IU/ml', manufacturer: 'Sanofi', isControlled: true },
+        { name: 'Morphine 10mg', genericName: 'Morphine', category: 'opioid', form: 'injection', strength: '10mg/ml', manufacturer: 'Rusan', isControlled: true },
+    ];
+    const createdMedications: { id: string; name: string }[] = [];
+    for (const med of medications) {
+        const medication = await prisma.medication.create({ data: { ...med, isControlled: med.isControlled || false } });
+        createdMedications.push({ id: medication.id, name: medication.name });
+    }
+    console.log(`  ✓ Created ${medications.length} medications`);
+
+    // Create Drug Interactions
+    console.log('Creating drug interactions...');
+    if (createdMedications.length >= 2) {
+        await prisma.drugInteraction.create({ data: { medicationId: createdMedications[0].id, interactsWith: 'Warfarin', severity: 'moderate', description: 'May increase anticoagulant effect' } });
+        await prisma.drugInteraction.create({ data: { medicationId: createdMedications[1].id, interactsWith: 'Methotrexate', severity: 'major', description: 'Increased risk of methotrexate toxicity' } });
+        await prisma.drugInteraction.create({ data: { medicationId: createdMedications[4].id, interactsWith: 'Simvastatin', severity: 'major', description: 'Increased risk of myopathy' } });
+    }
+    console.log(`  ✓ Created drug interactions`);
+
+    // Create Vendors
+    console.log('Creating vendors...');
+    const vendors = [
+        { name: 'MedSupply India Pvt Ltd', contactPerson: 'Rahul Mehta', phone: '9876500001', email: 'rahul@medsupply.in', gstNumber: '27AABCU9603R1ZM' },
+        { name: 'PharmaCare Distributors', contactPerson: 'Priya Singh', phone: '9876500002', email: 'priya@pharmacare.in', gstNumber: '27AABCU9604R1ZN' },
+        { name: 'SurgiEquip Solutions', contactPerson: 'Amit Kumar', phone: '9876500003', email: 'amit@surgiequip.in', gstNumber: '27AABCU9605R1ZO' },
+    ];
+    const createdVendors: { id: string; name: string }[] = [];
+    for (const vendor of vendors) {
+        const v = await prisma.vendor.create({ data: vendor });
+        createdVendors.push({ id: v.id, name: v.name });
+    }
+    console.log(`  ✓ Created ${vendors.length} vendors`);
+
+    // Create Purchase Orders
+    console.log('Creating purchase orders...');
+    for (let i = 0; i < 3; i++) {
+        const po = await prisma.purchaseOrder.create({
+            data: {
+                vendorId: createdVendors[i].id,
+                poNumber: `PO-2024-${String(i + 1).padStart(6, '0')}`,
+                status: ['approved', 'received', 'draft'][i],
+                totalAmount: 50000 + i * 25000,
+                createdBy: 'admin',
+                approvedBy: i < 2 ? 'manager' : null,
+                approvedAt: i < 2 ? new Date() : null,
+            },
+        });
+        await prisma.purchaseOrderItem.create({ data: { poId: po.id, itemId: (await prisma.inventoryItem.findFirst())?.id || '', quantity: 100, unitPrice: 50 } });
+    }
+    console.log(`  ✓ Created purchase orders`);
+
+    // Create Equipment
+    console.log('Creating equipment...');
+    const equipment = [
+        { name: 'Ventilator V500', category: 'life-support', serialNumber: 'VNT-001', location: 'ICU', status: 'in-use' },
+        { name: 'Defibrillator', category: 'emergency', serialNumber: 'DEF-001', location: 'Emergency', status: 'available' },
+        { name: 'ECG Machine', category: 'diagnostic', serialNumber: 'ECG-001', location: 'Cardiology', status: 'available' },
+        { name: 'X-Ray Machine', category: 'radiology', serialNumber: 'XRY-001', location: 'Radiology', status: 'in-use' },
+        { name: 'MRI Scanner', category: 'radiology', serialNumber: 'MRI-001', location: 'Radiology', status: 'maintenance' },
+        { name: 'Ultrasound Machine', category: 'diagnostic', serialNumber: 'USG-001', location: 'Obstetrics', status: 'available' },
+        { name: 'Patient Monitor', category: 'monitoring', serialNumber: 'MON-001', location: 'ICU', status: 'in-use' },
+        { name: 'Infusion Pump', category: 'therapy', serialNumber: 'INF-001', location: 'General Ward A', status: 'available' },
+    ];
+    for (const eq of equipment) {
+        await prisma.equipment.create({ data: { ...eq, nextMaintenanceAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) } });
+    }
+    console.log(`  ✓ Created ${equipment.length} equipment`);
+
+    // Create Staff Shifts
+    console.log('Creating staff shifts...');
+    const staffMembers = [
+        { staffId: 'dr-shah', staffName: 'Dr. Shah', department: 'Cardiology' },
+        { staffId: 'dr-patel', staffName: 'Dr. Patel', department: 'Orthopedics' },
+        { staffId: 'nurse-priya', staffName: 'Nurse Priya', department: 'ICU' },
+        { staffId: 'nurse-rahul', staffName: 'Nurse Rahul', department: 'Emergency' },
+        { staffId: 'tech-amit', staffName: 'Lab Tech Amit', department: 'Laboratory' },
+    ];
+    const shiftTypes = ['morning', 'evening', 'night'];
+    for (const staff of staffMembers) {
+        for (let d = 0; d < 3; d++) {
+            const shiftType = shiftTypes[d % 3];
+            const startHour = shiftType === 'morning' ? 8 : shiftType === 'evening' ? 16 : 0;
+            const startTime = new Date();
+            startTime.setDate(startTime.getDate() + d);
+            startTime.setHours(startHour, 0, 0, 0);
+            const endTime = new Date(startTime);
+            endTime.setHours(startTime.getHours() + 8);
+            await prisma.staffShift.create({
+                data: { ...staff, shiftType, startTime, endTime, status: d === 0 ? 'checked-in' : 'scheduled' },
+            });
+        }
+    }
+    console.log(`  ✓ Created staff shifts`);
+
+    // Create Appointments
+    console.log('Creating appointments...');
+    for (let i = 0; i < 6; i++) {
+        const patient = createdPatients[i % createdPatients.length];
+        const scheduledAt = new Date();
+        scheduledAt.setDate(scheduledAt.getDate() + i);
+        scheduledAt.setHours(9 + i, 0, 0, 0);
+        await prisma.appointment.create({
+            data: {
+                patientId: patient.id,
+                doctorId: 'dr-shah',
+                department: ['Cardiology', 'Orthopedics', 'General Medicine', 'Dermatology', 'Pediatrics', 'Gynecology'][i],
+                scheduledAt,
+                duration: 15 + (i % 2) * 15,
+                status: i === 0 ? 'checked-in' : i === 1 ? 'in-progress' : 'scheduled',
+                visitType: i < 2 ? 'new' : 'follow-up',
+                notes: i === 0 ? 'First consultation for cardiac evaluation' : null,
+            },
+        });
+    }
+    console.log(`  ✓ Created appointments`);
+
+    // Create Consents
+    console.log('Creating consents...');
+    for (let i = 0; i < 4; i++) {
+        const enc = createdEncounters[i];
+        await prisma.consent.create({
+            data: {
+                patientId: enc.patientId,
+                encounterId: enc.id,
+                consentType: ['treatment', 'surgery', 'anesthesia', 'blood-transfusion'][i],
+                consentText: `I hereby consent to ${['general treatment', 'surgical procedure', 'anesthesia administration', 'blood transfusion'][i]} as recommended by my physician.`,
+                signedBy: createdPatients[i].name,
+                witnessedBy: 'Nurse Priya',
+            },
+        });
+    }
+    console.log(`  ✓ Created consents`);
+
+    // Create Care Plans
+    console.log('Creating care plans...');
+    for (let i = 0; i < 3; i++) {
+        const enc = createdEncounters[i];
+        await prisma.carePlan.create({
+            data: {
+                encounterId: enc.id,
+                patientId: enc.patientId,
+                goals: JSON.stringify(['Pain management', 'Mobility improvement', 'Infection prevention']),
+                interventions: JSON.stringify(['Medication administration', 'Physical therapy', 'Wound care']),
+                createdBy: 'dr-shah',
+                status: 'active',
+            },
+        });
+    }
+    console.log(`  ✓ Created care plans`);
+
+    // Create Order Sets
+    console.log('Creating order sets...');
+    const orderSets = [
+        { name: 'Cardiac Emergency Protocol', category: 'cardiac', description: 'Standard orders for cardiac emergencies' },
+        { name: 'Sepsis Bundle', category: 'sepsis', description: 'Time-critical sepsis management orders' },
+        { name: 'Post-Op Care', category: 'surgery', description: 'Standard post-operative care orders' },
+        { name: 'Diabetic Ketoacidosis', category: 'metabolic', description: 'DKA management protocol' },
+    ];
+    for (let i = 0; i < orderSets.length; i++) {
+        const os = await prisma.orderSet.create({ data: orderSets[i] });
+        await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'lab', itemCode: 'CBC', itemName: 'Complete Blood Count', sortOrder: 1 } });
+        await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'medication', itemCode: 'MED-001', itemName: 'Paracetamol 500mg', sortOrder: 2 } });
+    }
+    console.log(`  ✓ Created order sets`);
+
+    // Create Clinical Codes
+    console.log('Creating clinical codes...');
+    const clinicalCodes = [
+        { codeSystem: 'ICD-10', code: 'I21.0', description: 'Acute transmural myocardial infarction of anterior wall', category: 'Cardiovascular' },
+        { codeSystem: 'ICD-10', code: 'J18.9', description: 'Pneumonia, unspecified organism', category: 'Respiratory' },
+        { codeSystem: 'ICD-10', code: 'E11.9', description: 'Type 2 diabetes mellitus without complications', category: 'Endocrine' },
+        { codeSystem: 'ICD-10', code: 'K35.80', description: 'Unspecified acute appendicitis', category: 'Digestive' },
+        { codeSystem: 'CPT', code: '99213', description: 'Office visit, established patient, low complexity', category: 'Evaluation' },
+        { codeSystem: 'CPT', code: '99284', description: 'Emergency department visit, high severity', category: 'Emergency' },
+    ];
+    for (const code of clinicalCodes) {
+        await prisma.clinicalCode.upsert({ where: { codeSystem_code: { codeSystem: code.codeSystem, code: code.code } }, update: {}, create: code });
+    }
+    console.log(`  ✓ Created clinical codes`);
+
+    // Create Encounter Diagnoses
+    console.log('Creating encounter diagnoses...');
+    for (let i = 0; i < 4; i++) {
+        const enc = createdEncounters[i];
+        await prisma.encounterDiagnosis.create({
+            data: {
+                encounterId: enc.id,
+                isPrimary: true,
+                codeSystem: 'ICD-10',
+                code: clinicalCodes[i].code,
+                description: clinicalCodes[i].description,
+                codedBy: 'dr-shah',
+            },
+        });
+    }
+    console.log(`  ✓ Created encounter diagnoses`);
+
+    // Create Permissions
+    console.log('Creating permissions...');
+    const resources = ['patient', 'encounter', 'billing', 'pharmacy', 'lab', 'radiology', 'surgery'];
+    const actions = ['create', 'read', 'update', 'delete', 'approve'];
+    const createdPermissions: { id: string; resource: string; action: string }[] = [];
+    for (const resource of resources) {
+        for (const action of actions) {
+            const perm = await prisma.permission.upsert({
+                where: { resource_action: { resource, action } },
+                update: {},
+                create: { resource, action, description: `Can ${action} ${resource}` },
+            });
+            createdPermissions.push({ id: perm.id, resource, action });
+        }
+    }
+    console.log(`  ✓ Created permissions`);
+
+    // Assign permissions to roles
+    console.log('Assigning permissions to roles...');
+    const adminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
+    const doctorRole = await prisma.role.findUnique({ where: { name: 'doctor' } });
+    if (adminRole) {
+        for (const perm of createdPermissions) {
+            await prisma.rolePermission.upsert({
+                where: { roleId_permissionId: { roleId: adminRole.id, permissionId: perm.id } },
+                update: {},
+                create: { roleId: adminRole.id, permissionId: perm.id },
+            });
+        }
+    }
+    if (doctorRole) {
+        const doctorPerms = createdPermissions.filter(p => ['patient', 'encounter', 'lab', 'radiology'].includes(p.resource) && ['create', 'read', 'update'].includes(p.action));
+        for (const perm of doctorPerms) {
+            await prisma.rolePermission.upsert({
+                where: { roleId_permissionId: { roleId: doctorRole.id, permissionId: perm.id } },
+                update: {},
+                create: { roleId: doctorRole.id, permissionId: perm.id },
+            });
+        }
+    }
+    console.log(`  ✓ Assigned permissions to roles`);
+
+    // Create Dashboard Configs
+    console.log('Creating dashboard configs...');
+    const dashboardConfigs = [
+        { dashboardType: 'operations', widgets: JSON.stringify(['bed-occupancy', 'patient-flow', 'pending-discharges']), layout: JSON.stringify({ columns: 3 }), isDefault: true },
+        { dashboardType: 'clinical', widgets: JSON.stringify(['critical-alerts', 'pending-orders', 'patient-list']), layout: JSON.stringify({ columns: 2 }), isDefault: true },
+        { dashboardType: 'financial', widgets: JSON.stringify(['revenue-summary', 'pending-bills', 'collections']), layout: JSON.stringify({ columns: 3 }), isDefault: true },
+        { dashboardType: 'executive', widgets: JSON.stringify(['kpi-summary', 'trends', 'alerts']), layout: JSON.stringify({ columns: 2 }), isDefault: true },
+    ];
+    for (const config of dashboardConfigs) {
+        await prisma.dashboardConfig.create({ data: config });
+    }
+    console.log(`  ✓ Created dashboard configs`);
+
+    // Create Infection Control Records
+    console.log('Creating infection control records...');
+    await prisma.infectionControl.create({
+        data: { patientId: createdPatients[0].id, encounterId: createdEncounters[0].id, infectionType: 'MRSA', organism: 'Methicillin-resistant Staphylococcus aureus', isolationType: 'contact', notes: 'Patient isolated in single room' },
+    });
+    await prisma.infectionControl.create({
+        data: { patientId: createdPatients[1].id, encounterId: createdEncounters[1].id, infectionType: 'COVID-19', organism: 'SARS-CoV-2', isolationType: 'airborne', notes: 'Negative pressure room required' },
+    });
+    console.log(`  ✓ Created infection control records`);
+
+    // Create CAPA (Corrective and Preventive Actions)
+    console.log('Creating CAPA records...');
+    const incidents = await prisma.incident.findMany({ take: 2 });
+    if (incidents.length > 0) {
+        await prisma.cAPA.create({
+            data: {
+                incidentId: incidents[0].id,
+                capaType: 'corrective',
+                description: 'Implement double-check system for medication administration',
+                assignedTo: 'Nursing Manager',
+                dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+                status: 'in-progress',
+            },
+        });
+        await prisma.cAPA.create({
+            data: {
+                incidentId: incidents[0].id,
+                capaType: 'preventive',
+                description: 'Conduct staff training on medication safety',
+                assignedTo: 'Training Department',
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                status: 'open',
+            },
+        });
+    }
+    console.log(`  ✓ Created CAPA records`);
+
+    // Create Risk Assessments
+    console.log('Creating risk assessments...');
+    for (let i = 0; i < 4; i++) {
+        const enc = createdEncounters[i];
+        await prisma.riskAssessment.create({
+            data: {
+                patientId: enc.patientId,
+                encounterId: enc.id,
+                assessmentType: ['fall', 'pressure-ulcer', 'vte', 'nutrition'][i],
+                score: 3 + i * 2,
+                riskLevel: i < 2 ? 'low' : i === 2 ? 'medium' : 'high',
+                assessedBy: 'Nurse Priya',
+                interventions: ['Bed rails up', 'Regular repositioning', 'Compression stockings'],
+            },
+        });
+    }
+    console.log(`  ✓ Created risk assessments`);
+
+    // Create Stock Transactions
+    console.log('Creating stock transactions...');
+    const inventoryItemsForTxn = await prisma.inventoryItem.findMany({ take: 3 });
+    for (let i = 0; i < inventoryItemsForTxn.length; i++) {
+        await prisma.stockTransaction.create({
+            data: {
+                itemId: inventoryItemsForTxn[i].id,
+                transactionType: ['issue', 'return', 'adjustment'][i],
+                quantity: i === 0 ? -10 : i === 1 ? 5 : 20,
+                performedBy: 'Pharmacist',
+                notes: ['Issued to Ward A', 'Returned from ICU', 'Inventory adjustment'][i],
+            },
+        });
+    }
+    console.log(`  ✓ Created stock transactions`);
+
+    // Create Shift Handovers
+    console.log('Creating shift handovers...');
+    for (let i = 0; i < 2; i++) {
+        const enc = createdEncounters[i];
+        await prisma.shiftHandover.create({
+            data: {
+                encounterId: enc.id,
+                outgoingNurse: 'Nurse Priya',
+                incomingNurse: 'Nurse Rahul',
+                patientSummary: 'Patient stable, vitals within normal limits. Continue current treatment plan.',
+                pendingTasks: JSON.stringify(['Medication at 6 PM', 'Dressing change', 'Lab follow-up']),
+                alerts: JSON.stringify(['Allergy to Penicillin', 'Fall risk']),
+                acknowledgedAt: new Date(),
+            },
+        });
+    }
+    console.log(`  ✓ Created shift handovers`);
+
+    // Create Discharge Summaries for discharged patients
+    console.log('Creating discharge summaries...');
+    const dischargedPatient = await prisma.encounter.create({
+        data: {
+            patientId: createdPatients[7].id,
+            type: 'IPD',
+            status: 'DISCHARGED',
+            department: 'General Medicine',
+            primaryDoctorId: 'dr-shah',
+            arrivalTime: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+            dischargeTime: new Date(),
+        },
+    });
+    await prisma.dischargeSummary.create({
+        data: {
+            encounterId: dischargedPatient.id,
+            patientId: createdPatients[7].id,
+            admissionDiagnosis: 'Acute gastroenteritis with dehydration',
+            dischargeDiagnosis: 'Acute gastroenteritis - Resolved',
+            courseOfTreatment: 'IV fluids, antiemetics, probiotics. Patient responded well to treatment.',
+            conditionAtDischarge: 'Stable, tolerating oral intake',
+            followUpInstructions: 'Follow up in OPD after 1 week. Continue probiotics for 5 days.',
+            medications: JSON.stringify(['Tab. ORS BD', 'Tab. Domperidone TDS x 3 days']),
+            createdBy: 'dr-shah',
+            approvedBy: 'dr-shah',
+            approvedAt: new Date(),
+        },
+    });
+    console.log(`  ✓ Created discharge summaries`);
+
+    // Create Audit Events
+    console.log('Creating audit events...');
+    for (let i = 0; i < 10; i++) {
+        await prisma.auditEvent.create({
+            data: {
+                entityType: ['Patient', 'Encounter', 'Bill', 'Prescription', 'Order'][i % 5],
+                entityId: createdPatients[i % createdPatients.length].id,
+                action: ['create', 'read', 'update', 'print', 'export'][i % 5],
+                performedBy: ['dr-shah', 'nurse-priya', 'admin', 'pharmacist', 'billing'][i % 5],
+                performedAt: new Date(Date.now() - i * 60 * 60 * 1000),
+                ipAddress: '192.168.1.' + (100 + i),
+            },
+        });
+    }
+    console.log(`  ✓ Created audit events`);
+
+    // Create Resource Utilization Records
+    console.log('Creating resource utilization records...');
+    for (let d = 0; d < 7; d++) {
+        const date = new Date();
+        date.setDate(date.getDate() - d);
+        await prisma.resourceUtilization.create({
+            data: { resourceType: 'bed', resourceId: 'ward-general', utilizationDate: date, hoursUsed: 18 + Math.random() * 4, hoursAvailable: 24 },
+        });
+        await prisma.resourceUtilization.create({
+            data: { resourceType: 'ot', resourceId: 'ot-1', utilizationDate: date, hoursUsed: 6 + Math.random() * 4, hoursAvailable: 12 },
+        });
+    }
+    console.log(`  ✓ Created resource utilization records`);
+
     console.log('\n✅ Comprehensive database seeded successfully!');
     console.log('\n📊 Summary:');
     console.log('   - 8 patients with allergies');
-    console.log('   - 8 active encounters (OPD, IPD, Emergency)');
+    console.log('   - 9 encounters (OPD, IPD, Emergency, Discharged)');
     console.log('   - Lab orders with results');
     console.log('   - Prescriptions and medications');
     console.log('   - Vital signs across encounters');
     console.log('   - Bills with payments');
     console.log('   - 3 scheduled/ongoing surgeries');
     console.log('   - Safety alerts (critical & warnings)');
-    console.log('   - Incident reports');
+    console.log('   - Incident reports with CAPA');
     console.log('   - Insurance policies and pre-auths');
+    console.log('   - 8 medications with drug interactions');
+    console.log('   - 3 vendors with purchase orders');
+    console.log('   - 8 equipment items');
+    console.log('   - Staff shifts (3 days)');
+    console.log('   - 6 appointments');
+    console.log('   - Consents and care plans');
+    console.log('   - Order sets and clinical codes');
+    console.log('   - Permissions and role assignments');
+    console.log('   - Dashboard configurations');
+    console.log('   - Infection control records');
+    console.log('   - Risk assessments');
+    console.log('   - Stock transactions');
+    console.log('   - Shift handovers');
+    console.log('   - Discharge summaries');
+    console.log('   - Audit events');
+    console.log('   - Resource utilization records');
 }
 
 main()
