@@ -191,7 +191,7 @@ export default function RegistrationPage() {
                     <div className="floating-card">
                         <h3 className="font-semibold mb-4 flex items-center gap-2">
                             <Users className="w-4 h-4" />
-                            Personal Information
+                            Personal Information And Details
                         </h3>
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
