@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { UserPlus, Users, FileText, Phone, MapPin, AlertCircle, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { UserPlus, Users, FileText, Phone, MapPin, AlertCircle, Loader2, CheckCircle, AlertTriangle, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import QRScanner from '@/components/QRScanner';
+import { AadhaarQRData, getAadhaarLast4 } from '@/lib/aadhaar-qr';
 
 interface FormData {
     firstName: string;
@@ -34,6 +36,7 @@ export default function RegistrationPage() {
     const [loading, setLoading] = useState(false);
     const [duplicates, setDuplicates] = useState<{ id: string; uhid: string; name: string; similarity: string }[]>([]);
     const [registeredPatient, setRegisteredPatient] = useState<{ uhid: string; name: string } | null>(null);
+    const [showIdCapture, setShowIdCapture] = useState(false);
 
     const [formData, setFormData] = useState<FormData>({
         firstName: '',
@@ -143,6 +146,33 @@ export default function RegistrationPage() {
         }
     };
 
+    const handleQRScan = (data: AadhaarQRData) => {
+        // Split name into first and last name
+        const nameParts = data.name.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        setFormData(prev => ({
+            ...prev,
+            firstName,
+            lastName,
+            dob: data.dob,
+            gender: data.gender.toLowerCase(),
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            pincode: data.pincode,
+            idType: 'aadhaar',
+            idNumber: data.uid ? `XXXX-XXXX-${getAadhaarLast4(data.uid)}` : '',
+        }));
+
+        setShowIdCapture(false);
+        toast({
+            title: 'Aadhaar QR Scanned',
+            description: `Extracted details for ${data.name || 'patient'}. Please review and complete.`,
+        });
+    };
+
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -155,16 +185,22 @@ export default function RegistrationPage() {
                         Register a new patient in the hospital system
                     </p>
                 </div>
-                <label className="flex items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        id="isTemporary"
-                        checked={formData.isTemporary}
-                        onChange={handleChange}
-                        className="rounded"
-                    />
-                    Emergency/Temporary Registration
-                </label>
+                <div className="flex items-center gap-3">
+                    <Button variant="outline" onClick={() => setShowIdCapture(true)}>
+                        <QrCode className="w-4 h-4 mr-2" />
+                        Scan Aadhaar QR
+                    </Button>
+                    <label className="flex items-center gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            id="isTemporary"
+                            checked={formData.isTemporary}
+                            onChange={handleChange}
+                            className="rounded"
+                        />
+                        Emergency/Temporary Registration
+                    </label>
+                </div>
             </div>
 
             {registeredPatient && (
@@ -345,6 +381,14 @@ export default function RegistrationPage() {
                     </Button>
                 </div>
             </form>
+
+            {/* Aadhaar QR Scanner Modal */}
+            {showIdCapture && (
+                <QRScanner
+                    onScan={handleQRScan}
+                    onClose={() => setShowIdCapture(false)}
+                />
+            )}
         </div>
     );
 }
