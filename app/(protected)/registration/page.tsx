@@ -20,6 +20,7 @@ interface FormData {
     emergencyRelation: string;
     address: string;
     city: string;
+    state: string;
     pincode: string;
     idType: string;
     idNumber: string;
@@ -47,6 +48,7 @@ export default function RegistrationPage() {
         emergencyRelation: '',
         address: '',
         city: '',
+        state: '',
         pincode: '',
         idType: '',
         idNumber: '',
@@ -89,12 +91,15 @@ export default function RegistrationPage() {
                     email: formData.email,
                     address: formData.address,
                     city: formData.city,
+                    state: formData.state,
                     pincode: formData.pincode,
                     bloodGroup: formData.bloodGroup,
                     emergencyName: formData.emergencyName,
                     emergencyContact: formData.emergency,
                     emergencyRelation: formData.emergencyRelation,
                     isTemporary: formData.isTemporary,
+                    idType: formData.idType || undefined,
+                    idNumber: formData.idNumber || undefined,
                     allergies: allergiesArray.length > 0 ? allergiesArray : undefined,
                 }),
             });
@@ -123,7 +128,7 @@ export default function RegistrationPage() {
             setFormData({
                 firstName: '', lastName: '', dob: '', gender: '', bloodGroup: '',
                 phone: '', email: '', emergency: '', emergencyName: '', emergencyRelation: '',
-                address: '', city: '', pincode: '', idType: '', idNumber: '',
+                address: '', city: '', state: '', pincode: '', idType: '', idNumber: '',
                 allergies: '', conditions: '', isTemporary: false,
             });
 
@@ -273,10 +278,14 @@ export default function RegistrationPage() {
                                 <Label htmlFor="address">Street Address</Label>
                                 <Input id="address" value={formData.address} onChange={handleChange} placeholder="Enter street address" className="mt-1" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <Label htmlFor="city">City</Label>
                                     <Input id="city" value={formData.city} onChange={handleChange} placeholder="City" className="mt-1" />
+                                </div>
+                                <div>
+                                    <Label htmlFor="state">State</Label>
+                                    <Input id="state" value={formData.state} onChange={handleChange} placeholder="State" className="mt-1" />
                                 </div>
                                 <div>
                                     <Label htmlFor="pincode">PIN Code</Label>

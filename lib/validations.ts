@@ -17,6 +17,10 @@ export const patientCreateSchema = z.object({
   emergencyContact: z.string().optional(),
   emergencyRelation: z.string().optional(),
   isTemporary: z.boolean().default(false),
+  // ID Document fields
+  idType: z.string().optional(),
+  idNumber: z.string().optional(),
+  // Allergies
   allergies: z.array(z.object({
     allergen: z.string(),
     allergenType: z.enum(['drug', 'food', 'environmental']),
