@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Helper to safely query new models
-async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
-    try {
-        return await query();
-    } catch (error) {
-        console.warn('Query failed, using fallback:', error);
-        return fallback;
-    }
-}
-
 // POST /api/nursing/verify - Verify nurse with their unique secret code
 export async function POST(request: NextRequest) {
     try {
@@ -33,12 +23,9 @@ export async function POST(request: NextRequest) {
 
         // Check if this nurse is assigned to this patient (if encounterId provided)
         if (encounterId) {
-            const assignment = await safeQuery(
-                () => (prisma as any).nursePatientAssignment.findFirst({
-                    where: { nurseId, encounterId, isActive: true },
-                }),
-                null
-            );
+            const assignment = await prisma.nursePatientAssignment.findFirst({
+                where: { nurseId, encounterId, isActive: true },
+            });
 
             if (!assignment) {
                 return NextResponse.json({
@@ -48,24 +35,12 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Get the nurse's secret code from today's verification/duty records
-        const verification = await safeQuery<{ codeUsed: string } | null>(
-            () => (prisma as any).nurseVerification.findFirst({
-                where: { nurseId, shiftDate: { gte: today, lt: tomorrow } },
-                orderBy: { verifiedAt: 'desc' },
-            }),
-            null
-        );
+        // Get the nurse's duty for today which holds the secretCode
+        const duty = await prisma.nurseDuty.findFirst({
+            where: { nurseId, shiftDate: { gte: today, lt: tomorrow }, isActive: true },
+        });
 
-        // Also check NurseDuty for secretCode
-        const duty = await safeQuery<{ secretCode: string | null } | null>(
-            () => (prisma as any).nurseDuty.findFirst({
-                where: { nurseId, shiftDate: { gte: today, lt: tomorrow }, isActive: true },
-            }),
-            null
-        );
-
-        const storedCode = verification?.codeUsed || duty?.secretCode;
+        const storedCode = duty?.secretCode;
 
         if (!storedCode) {
             return NextResponse.json({
@@ -90,7 +65,17 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid code. Please try again.' }, { status: 401 });
         }
 
-        // Code is valid - log successful verification
+        // Code is valid - Log successful verification usage
+        await prisma.nurseVerification.create({
+            data: {
+                nurseId,
+                nurseName,
+                codeUsed: code,
+                shiftDate: today,
+                verifiedAt: new Date(),
+            }
+        });
+
         await prisma.auditEvent.create({
             data: {
                 entityType: 'NurseVerification',
@@ -129,24 +114,18 @@ export async function GET(request: NextRequest) {
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         // Check if nurse has a code for today
-        const duty = await safeQuery<{ secretCode: string | null } | null>(
-            () => (prisma as any).nurseDuty.findFirst({
-                where: { nurseId, shiftDate: { gte: today, lt: tomorrow }, isActive: true },
-            }),
-            null
-        );
+        const duty = await prisma.nurseDuty.findFirst({
+            where: { nurseId, shiftDate: { gte: today, lt: tomorrow }, isActive: true },
+        });
 
         const hasCode = !!(duty?.secretCode);
 
         // Check if assigned to patient (if encounterId provided)
         let isAssigned = true;
         if (encounterId) {
-            const assignment = await safeQuery(
-                () => (prisma as any).nursePatientAssignment.findFirst({
-                    where: { nurseId, encounterId, isActive: true },
-                }),
-                null
-            );
+            const assignment = await prisma.nursePatientAssignment.findFirst({
+                where: { nurseId, encounterId, isActive: true },
+            });
             isAssigned = !!assignment;
         }
 

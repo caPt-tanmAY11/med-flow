@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Helper to safely query new models
-async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
-    try {
-        return await query();
-    } catch (error) {
-        console.warn('Query failed, using fallback:', error);
-        return fallback;
-    }
-}
-
 // Generate a random 4-digit code
 function generateCode(): string {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -35,14 +25,11 @@ export async function GET(request: NextRequest) {
 
         // Get nurse-patient assignments
         const encounterIds = encounters.map(e => e.id);
-        const assignments = await safeQuery(
-            () => (prisma as any).nursePatientAssignment.findMany({
-                where: { encounterId: { in: encounterIds }, isActive: true },
-            }),
-            []
-        );
+        const assignments = await prisma.nursePatientAssignment.findMany({
+            where: { encounterId: { in: encounterIds }, isActive: true },
+        });
 
-        const assignmentMap = new Map(assignments.map((a: any) => [a.encounterId, a]));
+        const assignmentMap = new Map(assignments.map(a => [a.encounterId, a]));
 
         // Enrich encounters with assignments
         const enrichedEncounters = encounters.map(enc => ({
@@ -56,48 +43,41 @@ export async function GET(request: NextRequest) {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const nursesOnDuty = await safeQuery(
-            () => (prisma as any).nurseDuty.findMany({
-                where: { shiftDate: { gte: today, lt: tomorrow }, isActive: true },
-                orderBy: { nurseName: 'asc' },
-            }),
-            [
-                { id: '1', nurseId: 'nurse-1', nurseName: 'Sarah Johnson', shiftType: 'MORNING', checkInAt: new Date().toISOString(), ward: 'ICU', secretCode: null },
-                { id: '2', nurseId: 'nurse-2', nurseName: 'Emily Chen', shiftType: 'MORNING', checkInAt: new Date().toISOString(), ward: 'General', secretCode: null },
-                { id: '3', nurseId: 'nurse-3', nurseName: 'Michael Brown', shiftType: 'EVENING', checkInAt: null, ward: 'Pediatric', secretCode: null },
-                { id: '4', nurseId: 'nurse-4', nurseName: 'Lisa Williams', shiftType: 'NIGHT', checkInAt: null, ward: 'ICU', secretCode: null },
-            ]
-        );
+        const nursesOnDuty = await prisma.nurseDuty.findMany({
+            where: { shiftDate: { gte: today, lt: tomorrow }, isActive: true },
+            orderBy: { nurseName: 'asc' },
+        });
 
         // Get assignment counts per nurse
-        const nurseIds = nursesOnDuty.map((d: any) => d.nurseId);
-        const assignmentCounts = await safeQuery(
-            () => (prisma as any).nursePatientAssignment.groupBy({
-                by: ['nurseId'],
-                where: { nurseId: { in: nurseIds }, isActive: true },
-                _count: { id: true },
-            }),
-            []
-        );
+        const nurseIds = nursesOnDuty.map(d => d.nurseId);
+        const assignmentCounts = await prisma.nursePatientAssignment.groupBy({
+            by: ['nurseId'],
+            where: { nurseId: { in: nurseIds }, isActive: true },
+            _count: { id: true },
+        });
 
-        const countMap = new Map(assignmentCounts.map((a: any) => [a.nurseId, a._count?.id || 0]));
+        const countMap = new Map(assignmentCounts.map(a => [a.nurseId, a._count.id]));
 
         // Get secret codes for each nurse from verification table
-        const verifications = await safeQuery(
-            () => (prisma as any).nurseVerification.findMany({
-                where: { nurseId: { in: nurseIds }, shiftDate: { gte: today, lt: tomorrow } },
-                orderBy: { verifiedAt: 'desc' },
-            }),
-            []
-        );
+        const verifications = await prisma.nurseVerification.findMany({
+            where: { nurseId: { in: nurseIds }, shiftDate: { gte: today, lt: tomorrow } },
+            orderBy: { verifiedAt: 'desc' },
+        });
 
-        const codeMap = new Map(verifications.map((v: any) => [v.nurseId, v.codeUsed]));
+        // Use the active code from NurseDuty or the last used code from verification
+        const codeMap = new Map();
 
-        const nursesWithData = nursesOnDuty.map((nurse: any) => ({
+        nursesOnDuty.forEach(duty => {
+            if (duty.secretCode) {
+                codeMap.set(duty.nurseId, duty.secretCode);
+            }
+        });
+
+        const nursesWithData = nursesOnDuty.map(nurse => ({
             ...nurse,
             assignmentCount: countMap.get(nurse.nurseId) || 0,
-            secretCode: codeMap.get(nurse.nurseId) || nurse.secretCode || null,
-            hasCode: codeMap.has(nurse.nurseId) || !!nurse.secretCode,
+            secretCode: nurse.secretCode || null,
+            hasCode: !!nurse.secretCode,
         }));
 
         // Get care plans
@@ -142,24 +122,34 @@ export async function POST(request: NextRequest) {
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
-            // Store the code in verification table
-            const verification = await safeQuery(
-                () => (prisma as any).nurseVerification.create({
-                    data: { nurseId, nurseName, codeUsed: code, shiftDate: today },
-                }),
-                { id: 'temp-' + Date.now(), nurseId, nurseName, codeUsed: code, shiftDate: today }
-            );
+            // Update the NurseDuty record with the code
+            const existingDuty = await prisma.nurseDuty.findFirst({
+                where: { nurseId, shiftDate: { gte: today, lt: tomorrow } }
+            });
 
-            // Also update the NurseDuty record with the code
-            await safeQuery(
-                () => (prisma as any).nurseDuty.updateMany({
-                    where: { nurseId, shiftDate: { gte: today, lt: new Date(today.getTime() + 86400000) } },
-                    data: { secretCode: code },
-                }),
-                null
-            );
+            if (existingDuty) {
+                await prisma.nurseDuty.update({
+                    where: { id: existingDuty.id },
+                    data: { secretCode: code }
+                });
+            } else {
+                // Create a duty entry if one doesn't exist
+                await prisma.nurseDuty.create({
+                    data: {
+                        nurseId,
+                        nurseName,
+                        shiftType: 'DAY', // Default
+                        shiftDate: today,
+                        secretCode: code,
+                        isActive: true
+                    }
+                });
+            }
 
+            // Log event
             await prisma.auditEvent.create({
                 data: {
                     entityType: 'NurseCode',
@@ -178,21 +168,15 @@ export async function POST(request: NextRequest) {
             const { nurseId, nurseName, encounterId, patientId } = body;
 
             // Deactivate existing assignments for this patient
-            await safeQuery(
-                () => (prisma as any).nursePatientAssignment.updateMany({
-                    where: { encounterId, isActive: true },
-                    data: { isActive: false, endTime: new Date() },
-                }),
-                null
-            );
+            await prisma.nursePatientAssignment.updateMany({
+                where: { encounterId, isActive: true },
+                data: { isActive: false, endTime: new Date() },
+            });
 
             // Create new assignment
-            const assignment = await safeQuery(
-                () => (prisma as any).nursePatientAssignment.create({
-                    data: { nurseId, nurseName, encounterId, patientId, assignedBy: 'Admin' },
-                }),
-                { id: 'temp-' + Date.now(), nurseId, nurseName, encounterId, patientId }
-            );
+            const assignment = await prisma.nursePatientAssignment.create({
+                data: { nurseId, nurseName, encounterId, patientId, assignedBy: 'Admin' },
+            });
 
             await prisma.auditEvent.create({
                 data: {

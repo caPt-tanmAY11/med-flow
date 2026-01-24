@@ -1307,6 +1307,9 @@ enum ROLE {
   DOCTOR
   NURSE
   LAB_PERSON
+  ADMIN
+  NURSING_ADMIN
+  PATIENT
 }
 
 // Nurse duty/shift tracking
