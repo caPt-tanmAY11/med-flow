@@ -50,6 +50,66 @@ interface ActivePatient {
     orders: any[]; // Lab orders
 }
 
+
+interface MedicalHistoryEvent {
+    id: string;
+    date: string;
+    type: 'OPD' | 'IPD' | 'EMERGENCY' | 'SURGERY';
+    title: string;
+    doctor: string;
+    department: string;
+    diagnosis?: string;
+    notes: string;
+    documents?: string[];
+}
+
+const getDummyMedicalHistory = (patientId: string): MedicalHistoryEvent[] => {
+    return [
+        {
+            id: 'evt-1',
+            date: '2025-10-12T09:30:00',
+            type: 'OPD' as const,
+            title: 'Initial Consultation - Recurring Headaches',
+            doctor: 'Dr. Priya Sharma',
+            department: 'General Medicine',
+            diagnosis: 'Tension Headache',
+            notes: 'Patient reports frequent headaches for the last 2 weeks. Triggers include stress and lack of sleep. BP 130/85.',
+            documents: ['Prescription-OCT12.pdf']
+        },
+        {
+            id: 'evt-2',
+            date: '2025-11-05T14:15:00',
+            type: 'OPD' as const,
+            title: 'Follow-up & Blood Work Review',
+            doctor: 'Dr. Priya Sharma',
+            department: 'General Medicine',
+            notes: 'Blood work normal. Headaches have reduced with lifestyle changes. Advised to continue current routine.',
+        },
+        {
+            id: 'evt-3',
+            date: '2025-12-20T18:20:00',
+            type: 'EMERGENCY' as const,
+            title: 'Emergency Admission - Allergic Reaction',
+            doctor: 'Dr. James Chen',
+            department: 'Emergency',
+            diagnosis: 'Mild Anaphylaxis',
+            notes: 'Patient ingested peanuts. Swelling of lips and hives. Administered Epinephrine and Antihistamines. Stabilized.',
+            documents: ['Emergency_Report.pdf', 'Vitals_Log.pdf']
+        },
+         {
+            id: 'evt-4',
+            date: '2026-01-15T10:00:00',
+            type: 'IPD' as const,
+            title: 'Elective Surgery - Appendectomy',
+            doctor: 'Dr. Rajesh Gupta',
+            department: 'Surgery',
+            diagnosis: 'Acute Appendicitis',
+            notes: 'Laparoscopic appendectomy performed. Uncomplicated procedure. Patient recovering well in Ward A.',
+            documents: ['Surgery_Notes.pdf', 'Discharge_Summary.pdf']
+        }
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
 export default function NursePage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -378,16 +438,102 @@ export default function NursePage() {
 
             {/* EMR / Notes Modal */}
             <Dialog open={showNotesModal} onOpenChange={setShowNotesModal}>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader><DialogTitle>Patient EMR & Notes</DialogTitle></DialogHeader>
-                    <div className="space-y-4">
-                        {selectedPatient?.clinicalNotes?.map((note: any, i: number) => (
-                            <div key={i} className="border p-4 rounded-lg bg-muted/20">
-                                <div className="flex justify-between mb-2"><span className="font-bold text-sm">{note.authorRole || 'Doctor'} Note</span><span className="text-xs text-muted-foreground">{formatDateTime(note.createdAt)}</span></div>
-                                <p className="text-sm">{note.content}</p>
+                <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto flex flex-col">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <FileText className="h-6 w-6 text-primary" />
+                            Electronic Medical Record (EMR)
+                        </DialogTitle>
+                        <DialogDescription className="text-base">
+                            History for <span className="font-semibold text-foreground">{selectedPatient?.patient.name}</span> ({selectedPatient?.patient.uhid})
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 space-y-6">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-blue-50 border-blue-100 border p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-blue-700 uppercase mb-1">Status</h4>
+                                <p className="text-lg font-medium">{selectedPatient?.bedAssignments?.[0] ? 'Inpatient (IPD)' : 'Outpatient'}</p>
                             </div>
-                        ))}
-                        {(!selectedPatient?.clinicalNotes || selectedPatient.clinicalNotes.length === 0) && <p className="text-center text-muted-foreground">No notes available.</p>}
+                            <div className="bg-purple-50 border-purple-100 border p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-purple-700 uppercase mb-1">Blood Group</h4>
+                                <p className="text-lg font-medium">{selectedPatient?.patient.bloodGroup || 'Unknown'}</p>
+                            </div>
+                            <div className="bg-red-50 border-red-100 border p-4 rounded-lg">
+                                <h4 className="text-sm font-semibold text-red-700 uppercase mb-1">Allergies</h4>
+                                {selectedPatient?.patient.allergies && selectedPatient.patient.allergies.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {selectedPatient.patient.allergies.map((a, i) => (
+                                            <Badge key={i} variant="destructive" className="text-xs">{a.allergen}</Badge>
+                                        ))}
+                                    </div>
+                                ) : <p className="text-lg font-medium text-gray-500">None Known</p>}
+                            </div>
+                        </div>
+
+                        {/* Recent History Timeline */}
+                        <div>
+                            <h3 className="text-lg font-bold flex items-center gap-2 mb-4 border-b pb-2">
+                                <Clock className="w-5 h-5" /> Medical Timeline
+                            </h3>
+                            
+                            <div className="relative border-l-2 border-slate-200 ml-3 space-y-8 pl-6 pb-2">
+                                {selectedPatient && getDummyMedicalHistory(selectedPatient.patient.id).map((event, index) => (
+                                    <div key={event.id} className="relative group">
+                                        {/* Timeline Dot */}
+                                        <div className={cn(
+                                            "absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm",
+                                            event.type === 'EMERGENCY' ? "bg-red-500" :
+                                            event.type === 'IPD' ? "bg-blue-500" :
+                                            event.type === 'SURGERY' ? "bg-purple-500" :
+                                            "bg-green-500"
+                                        )}></div>
+                                        
+                                        <div className="bg-slate-50 rounded-lg border p-4 hover:border-blue-200 hover:shadow-sm transition-all">
+                                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-2">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={
+                                                            event.type === 'EMERGENCY' ? 'destructive' : 
+                                                            event.type === 'IPD' ? 'default' : 
+                                                            'secondary'
+                                                        } className="uppercase text-[10px]">
+                                                            {event.type}
+                                                        </Badge>
+                                                        <span className="text-sm text-muted-foreground font-medium">
+                                                            {new Date(event.date).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="font-bold text-base text-slate-900 mt-1">{event.title}</h4>
+                                                    <p className="text-sm text-blue-600 font-medium">{event.doctor} • {event.department}</p>
+                                                </div>
+                                                {event.documents && (
+                                                    <div className="flex gap-2">
+                                                        {event.documents.map((doc, idx) => (
+                                                            <Badge key={idx} variant="outline" className="text-xs gap-1 cursor-pointer hover:bg-slate-100">
+                                                                <FileText className="w-3 h-3" /> {doc}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {event.diagnosis && (
+                                                <div className="mb-2 bg-white/50 p-2 rounded border border-slate-100">
+                                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Diagnosis</span>
+                                                    <p className="font-medium text-slate-800">{event.diagnosis}</p>
+                                                </div>
+                                            )}
+                                            
+                                            <p className="text-sm text-slate-600 leading-relaxed">
+                                                {event.notes}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>
