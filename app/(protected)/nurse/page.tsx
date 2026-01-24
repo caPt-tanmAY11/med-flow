@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Heart, Clock, CheckCircle, AlertTriangle, Users, Loader2, X, Plus, Activity, FileText, ClipboardList, ArrowRightLeft, BedDouble, Thermometer, Stethoscope, Lock, ShieldCheck, Eye, AlertCircle, Calendar, LogOut, ChevronDown, Pill, FlaskConical, PenTool } from 'lucide-react';
+import { Heart, Clock, CheckCircle, AlertTriangle, Users, Loader2, X, Plus, Activity, FileText, ClipboardList, ArrowRightLeft, BedDouble, Thermometer, Stethoscope, Lock, ShieldCheck, Eye, AlertCircle, Calendar, LogOut, ChevronDown, Pill, FlaskConical, PenTool, FileDown, Sparkles, Bot } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,53 +64,6 @@ interface MedicalHistoryEvent {
     documents?: string[];
 }
 
-const getDummyMedicalHistory = (patientId: string): MedicalHistoryEvent[] => {
-    return [
-        {
-            id: 'evt-1',
-            date: '2025-10-12T09:30:00',
-            type: 'OPD' as const,
-            title: 'Initial Consultation - Recurring Headaches',
-            doctor: 'Dr. Priya Sharma',
-            department: 'General Medicine',
-            diagnosis: 'Tension Headache',
-            notes: 'Patient reports frequent headaches for the last 2 weeks. Triggers include stress and lack of sleep. BP 130/85.',
-            documents: ['Prescription-OCT12.pdf']
-        },
-        {
-            id: 'evt-2',
-            date: '2025-11-05T14:15:00',
-            type: 'OPD' as const,
-            title: 'Follow-up & Blood Work Review',
-            doctor: 'Dr. Priya Sharma',
-            department: 'General Medicine',
-            notes: 'Blood work normal. Headaches have reduced with lifestyle changes. Advised to continue current routine.',
-        },
-        {
-            id: 'evt-3',
-            date: '2025-12-20T18:20:00',
-            type: 'EMERGENCY' as const,
-            title: 'Emergency Admission - Allergic Reaction',
-            doctor: 'Dr. James Chen',
-            department: 'Emergency',
-            diagnosis: 'Mild Anaphylaxis',
-            notes: 'Patient ingested peanuts. Swelling of lips and hives. Administered Epinephrine and Antihistamines. Stabilized.',
-            documents: ['Emergency_Report.pdf', 'Vitals_Log.pdf']
-        },
-         {
-            id: 'evt-4',
-            date: '2026-01-15T10:00:00',
-            type: 'IPD' as const,
-            title: 'Elective Surgery - Appendectomy',
-            doctor: 'Dr. Rajesh Gupta',
-            department: 'Surgery',
-            diagnosis: 'Acute Appendicitis',
-            notes: 'Laparoscopic appendectomy performed. Uncomplicated procedure. Patient recovering well in Ward A.',
-            documents: ['Surgery_Notes.pdf', 'Discharge_Summary.pdf']
-        }
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-};
-
 export default function NursePage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
@@ -123,6 +77,44 @@ export default function NursePage() {
     // Data State
     const [activePatients, setActivePatients] = useState<ActivePatient[]>([]);
     const [nursesOnDuty, setNursesOnDuty] = useState<NurseDuty[]>([]);
+    
+    // EMR Data State
+    const [emrTimeline, setEmrTimeline] = useState<MedicalHistoryEvent[]>([]);
+    const [emrVitals, setEmrVitals] = useState<any[]>([]);
+    const [loadingEMR, setLoadingEMR] = useState(false);
+
+    // AI Analysis State
+    const [aiAnalysis, setAiAnalysis] = useState<{ insights: string[], recommendations: string[] } | null>(null);
+    const [analyzing, setAnalyzing] = useState(false);
+
+    const handleAIAnalyze = async () => {
+        if (!selectedPatient || !emrVitals.length) return;
+        setAnalyzing(true);
+        try {
+            const response = await fetch('/api/ai/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patientName: selectedPatient.patient.name,
+                    age: new Date().getFullYear() - new Date(selectedPatient.patient.dob).getFullYear(),
+                    gender: selectedPatient.patient.gender,
+                    vitals: emrVitals,
+                    history: emrTimeline
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setAiAnalysis(data);
+                toast({ title: 'Analysis Complete', description: 'AI insights generated.' });
+            } else {
+                toast({ title: 'Analysis Failed', description: 'Could not generate insights.' });
+            }
+        } catch {
+            toast({ title: 'Error', variant: 'destructive' });
+        } finally {
+            setAnalyzing(false);
+        }
+    };
 
     // UI State
     const [selectedPatient, setSelectedPatient] = useState<ActivePatient | null>(null);
@@ -168,6 +160,30 @@ export default function NursePage() {
             } catch (e) { }
         }
     }, [fetchData]);
+
+    // Fetch EMR for selected patient
+    useEffect(() => {
+        if (showNotesModal && selectedPatient) {
+            const fetchEMR = async () => {
+                setLoadingEMR(true);
+                try {
+                    const res = await fetch(`/api/patients/${selectedPatient.patient.id}/emr`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setEmrTimeline(data.timeline || []);
+                        setEmrVitals(data.vitals || []);
+                    } else {
+                        toast({ title: 'Error', description: 'Failed to fetch medical history' });
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setLoadingEMR(false);
+                }
+            };
+            fetchEMR();
+        }
+    }, [showNotesModal, selectedPatient, toast]);
 
     const handleLogin = async () => {
         setChecking(true);
@@ -290,6 +306,20 @@ export default function NursePage() {
             setShowNurseNoteModal(false);
             setNurseNote('');
         } catch { }
+    };
+
+    const handleDownload = (docName: string) => {
+        toast({
+            title: "Downloading Document",
+            description: `Starting download for ${docName}...`,
+        });
+        setTimeout(() => {
+            toast({
+                title: "Download Complete",
+                description: `${docName} has been saved to your device.`,
+                className: "bg-green-50 border-green-200"
+            });
+        }, 1500);
     };
 
     const isAbnormal = (type: string, value: any) => {
@@ -472,6 +502,93 @@ export default function NursePage() {
                             </div>
                         </div>
 
+                        {/* AI Analysis Section */}
+                        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100 rounded-xl p-4 shadow-sm">
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-violet-800">
+                                    <Sparkles className="w-5 h-5" /> AI Health Insights
+                                </h3>
+                                <Button 
+                                    onClick={handleAIAnalyze} 
+                                    disabled={analyzing || loadingEMR} 
+                                    size="sm" 
+                                    className="bg-violet-600 hover:bg-violet-700 text-white"
+                                >
+                                    {analyzing ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analyzing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Bot className="w-4 h-4 mr-2" /> Generate Analysis
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {aiAnalysis && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
+                                        <h4 className="text-sm font-semibold text-violet-700 mb-2 flex items-center gap-1">
+                                            <Activity className="w-4 h-4" /> Key Trends
+                                        </h4>
+                                        <ul className="space-y-1">
+                                            {aiAnalysis.insights.map((insight: string, i: number) => (
+                                                <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
+                                                    <span className="text-violet-400 mt-1">•</span>
+                                                    {insight}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="bg-white/60 p-3 rounded-lg border border-violet-100">
+                                        <h4 className="text-sm font-semibold text-violet-700 mb-2 flex items-center gap-1">
+                                            <ClipboardList className="w-4 h-4" /> Recommendations
+                                        </h4>
+                                        <ul className="space-y-1">
+                                            {aiAnalysis.recommendations.map((rec: string, i: number) => (
+                                                <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
+                                                    <span className="text-violet-400 mt-1">•</span>
+                                                    {rec}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {!aiAnalysis && !analyzing && (
+                                <p className="text-sm text-violet-600/70 italic text-center py-2">
+                                    Click analyze to use Gemini AI for detecting trends and risks.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Vitals Trends Graph */}
+                        <div className="border rounded-xl p-4 bg-white shadow-sm">
+                            <h3 className="text-lg font-bold flex items-center gap-2 mb-4">
+                                <Activity className="w-5 h-5 text-indigo-600" /> Vitals Trends
+                            </h3>
+                            <div className="h-[250px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={emrVitals}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                        <XAxis dataKey="date" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                                        <RechartsTooltip 
+                                            contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                            itemStyle={{ fontSize: '12px' }}
+                                        />
+                                        <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                        <Line type="monotone" dataKey="systolic" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} name="BP Systolic" />
+                                        <Line type="monotone" dataKey="diastolic" stroke="#f97316" strokeWidth={2} dot={{ r: 4 }} name="BP Diastolic" />
+                                        <Line type="monotone" dataKey="heartRate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} name="Heart Rate" />
+                                        <Line type="monotone" dataKey="temp" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Temp (°C)" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
                         {/* Recent History Timeline */}
                         <div>
                             <h3 className="text-lg font-bold flex items-center gap-2 mb-4 border-b pb-2">
@@ -479,7 +596,18 @@ export default function NursePage() {
                             </h3>
                             
                             <div className="relative border-l-2 border-slate-200 ml-3 space-y-8 pl-6 pb-2">
-                                {selectedPatient && getDummyMedicalHistory(selectedPatient.patient.id).map((event, index) => (
+                                {loadingEMR && (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mr-2" />
+                                        <p className="text-muted-foreground">Loading history...</p>
+                                    </div>
+                                )}
+
+                                {!loadingEMR && emrTimeline.length === 0 && (
+                                    <p className="text-muted-foreground italic pl-4">No medical history found for this patient.</p>
+                                )}
+                                
+                                {!loadingEMR && emrTimeline.map((event: MedicalHistoryEvent, index: number) => (
                                     <div key={event.id} className="relative group">
                                         {/* Timeline Dot */}
                                         <div className={cn(
@@ -510,9 +638,20 @@ export default function NursePage() {
                                                 </div>
                                                 {event.documents && (
                                                     <div className="flex gap-2">
-                                                        {event.documents.map((doc, idx) => (
-                                                            <Badge key={idx} variant="outline" className="text-xs gap-1 cursor-pointer hover:bg-slate-100">
-                                                                <FileText className="w-3 h-3" /> {doc}
+                                                        {event.documents.map((doc: string, idx: number) => (
+                                                            <Badge 
+                                                                key={idx} 
+                                                                variant="outline" 
+                                                                className="text-xs gap-1 cursor-pointer hover:bg-slate-100 group/badge pr-1"
+                                                            >
+                                                                <FileText className="w-3 h-3" /> 
+                                                                {doc}
+                                                                <div 
+                                                                    onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
+                                                                    className="ml-1 p-1 hover:bg-slate-200 rounded-full"
+                                                                >
+                                                                    <FileDown className="w-3 h-3 text-slate-500 group-hover/badge:text-blue-600" />
+                                                                </div>
                                                             </Badge>
                                                         ))}
                                                     </div>
