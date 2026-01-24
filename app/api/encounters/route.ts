@@ -210,6 +210,26 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Notify the assigned doctor if one exists
+        if (data.primaryDoctorId) {
+            try {
+                await prisma.notification.create({
+                    data: {
+                        userId: data.primaryDoctorId,
+                        title: 'New Patient Assigned',
+                        message: `Patient ${patient.name} (${patient.uhid}) has been registered and assigned to you.`,
+                        type: 'info',
+                        link: '/opd',
+                        encounterId: encounter.id,
+                        patientId: patient.id,
+                    },
+                });
+            } catch (error) {
+                console.error('Failed to create notification for doctor:', error);
+                // Don't fail the request if notification fails
+            }
+        }
+
         // Return with allergy alerts if any
         return NextResponse.json({
             data: encounter,

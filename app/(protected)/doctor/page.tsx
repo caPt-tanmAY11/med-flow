@@ -153,6 +153,10 @@ export default function DoctorPage() {
     const [emrLoading, setEmrLoading] = useState(false);
     const [medications, setMedications] = useState<Medication[]>([{ medicationName: '', dosage: '', frequency: '', route: 'oral', duration: '', instructions: '' }]);
     const [prescriptionImage, setPrescriptionImage] = useState<string | null>(null);
+    const [prescriptionOcrText, setPrescriptionOcrText] = useState('');
+    const [ocrLoading, setOcrLoading] = useState(false);
+    const [noteImage, setNoteImage] = useState<string | null>(null);
+    const [noteOcrText, setNoteOcrText] = useState('');
     const [labOrders, setLabOrders] = useState<{ orderCode: string; orderName: string; priority: string }[]>([]);
     const [note, setNote] = useState({ noteType: 'progress', content: '' });
     const [saving, setSaving] = useState(false);
@@ -355,7 +359,7 @@ export default function DoctorPage() {
         setActiveMedIndex(null);
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
@@ -363,7 +367,70 @@ export default function DoctorPage() {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = () => setPrescriptionImage(reader.result as string);
+            reader.onload = async () => {
+                const imageData = reader.result as string;
+                setPrescriptionImage(imageData);
+                // Trigger OCR extraction via Python API
+                setOcrLoading(true);
+                setPrescriptionOcrText('');
+                try {
+                    const response = await fetch('/api/ocr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData }),
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        setPrescriptionOcrText(result.text || '');
+                    } else {
+                        console.error('OCR failed:', result.error);
+                        toast({ title: 'OCR Error', description: result.error || 'Could not extract text', variant: 'destructive' });
+                    }
+                } catch (err) {
+                    console.error('OCR extraction failed:', err);
+                    toast({ title: 'OCR Error', description: 'Could not extract text from image', variant: 'destructive' });
+                } finally {
+                    setOcrLoading(false);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleNoteImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const imageData = reader.result as string;
+                setNoteImage(imageData);
+                // Trigger OCR extraction via Python API
+                setOcrLoading(true);
+                setNoteOcrText('');
+                try {
+                    const response = await fetch('/api/ocr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData }),
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        setNoteOcrText(result.text || '');
+                    } else {
+                        console.error('OCR failed:', result.error);
+                        toast({ title: 'OCR Error', description: result.error || 'Could not extract text', variant: 'destructive' });
+                    }
+                } catch (err) {
+                    console.error('OCR extraction failed:', err);
+                    toast({ title: 'OCR Error', description: 'Could not extract text from image', variant: 'destructive' });
+                } finally {
+                    setOcrLoading(false);
+                }
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -709,7 +776,24 @@ export default function DoctorPage() {
                     <div className="bg-background rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
                         <div className="flex items-center justify-between mb-4"><div><h2 className="text-lg font-semibold">Write Prescription</h2><p className="text-sm text-muted-foreground">{selectedEncounter.patient.name} ({selectedEncounter.patient.uhid})</p></div><Button variant="ghost" size="sm" onClick={() => setShowPrescriptionModal(false)}><X className="w-4 h-4" /></Button></div>
                         {selectedEncounter.patient.allergies?.length > 0 && (<div className="bg-status-critical/10 border border-status-critical/20 rounded-lg p-3 mb-4 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-status-critical" /><span className="text-sm text-status-critical font-medium">Known Allergies: {selectedEncounter.patient.allergies.map(a => `${a.allergen} (${a.severity})`).join(', ')}</span></div>)}
-                        <div className="mb-6 p-4 border-2 border-dashed rounded-lg"><Label className="flex items-center gap-2 mb-2"><ImageIcon className="w-4 h-4" />Prescription Image (Optional)</Label><p className="text-xs text-muted-foreground mb-3">Upload a handwritten or scanned prescription image</p>{prescriptionImage ? (<div className="relative inline-block"><img src={prescriptionImage} alt="Prescription" className="max-h-48 rounded-lg border" /><Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => setPrescriptionImage(null)}><X className="w-3 h-3" /></Button></div>) : (<label className="flex items-center justify-center gap-2 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"><Upload className="w-5 h-5 text-muted-foreground" /><span className="text-sm text-muted-foreground">Click to upload image</span><input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} /></label>)}</div>
+                        <div className="mb-6 p-4 border-2 border-dashed rounded-lg"><Label className="flex items-center gap-2 mb-2"><ImageIcon className="w-4 h-4" />Prescription Image (Optional)</Label><p className="text-xs text-muted-foreground mb-3">Upload a handwritten or scanned prescription image</p>{prescriptionImage ? (<div className="relative inline-block"><img src={prescriptionImage} alt="Prescription" className="max-h-48 rounded-lg border" /><Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => { setPrescriptionImage(null); setPrescriptionOcrText(''); }}><X className="w-3 h-3" /></Button></div>) : (<label className="flex items-center justify-center gap-2 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"><Upload className="w-5 h-5 text-muted-foreground" /><span className="text-sm text-muted-foreground">Click to upload image</span><input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} /></label>)}
+                            {/* OCR Extracted Text Section */}
+                            {prescriptionImage && (
+                                <div className="mt-4">
+                                    <Label className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4" />Extracted Prescription Text</Label>
+                                    {ocrLoading ? (
+                                        <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg"><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm text-muted-foreground">Extracting text from image...</span></div>
+                                    ) : (
+                                        <textarea
+                                            className="w-full p-3 border rounded-lg min-h-[100px] resize-none text-sm"
+                                            placeholder="OCR extracted text will appear here. You can edit it if needed."
+                                            value={prescriptionOcrText}
+                                            onChange={(e) => setPrescriptionOcrText(e.target.value)}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
                         <div className="space-y-4">
                             {medications.map((med, index) => (
                                 <div key={index} className="p-4 bg-muted/30 rounded-lg space-y-3">
@@ -737,7 +821,87 @@ export default function DoctorPage() {
             {showLabOrderModal && selectedEncounter && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-background rounded-xl max-w-lg w-full p-6"><div className="flex items-center justify-between mb-4"><div><h2 className="text-lg font-semibold">Order Lab Tests</h2><p className="text-sm text-muted-foreground">{selectedEncounter.patient.name}</p></div><Button variant="ghost" size="sm" onClick={() => setShowLabOrderModal(false)}><X className="w-4 h-4" /></Button></div><div className="grid grid-cols-2 gap-2 mb-4">{commonLabTests.map((test) => (<button key={test.orderCode} onClick={() => toggleLabOrder(test)} className={cn("p-3 rounded-lg border text-left transition-all", labOrders.find(o => o.orderCode === test.orderCode) ? "bg-primary/10 border-primary" : "hover:bg-muted/50")}><p className="font-medium text-sm">{test.orderName}</p><p className="text-xs text-muted-foreground">{test.orderCode}</p></button>))}</div>{labOrders.length > 0 && (<div className="mb-4 p-3 bg-muted/30 rounded-lg"><p className="text-sm font-medium mb-2">Selected: {labOrders.length} tests</p><div className="flex flex-wrap gap-1">{labOrders.map(o => (<span key={o.orderCode} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded">{o.orderCode}</span>))}</div></div>)}<div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setShowLabOrderModal(false)}>Cancel</Button><Button onClick={handleLabOrder} disabled={saving || labOrders.length === 0}>{saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Order {labOrders.length} Tests</Button></div></div></div>)}
 
             {/* Add Note Modal */}
-            {showNoteModal && selectedEncounter && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"><div className="bg-background rounded-xl max-w-lg w-full p-6"><div className="flex items-center justify-between mb-4"><div><h2 className="text-lg font-semibold">Add Clinical Note</h2><p className="text-sm text-muted-foreground">{selectedEncounter.patient.name}</p></div><Button variant="ghost" size="sm" onClick={() => setShowNoteModal(false)}><X className="w-4 h-4" /></Button></div><div className="space-y-4"><div><Label>Note Type</Label><select className="elegant-select" value={note.noteType} onChange={(e) => setNote(n => ({ ...n, noteType: e.target.value }))}><option value="chief-complaint">Chief Complaint</option><option value="history">History</option><option value="progress">Progress Note</option><option value="discharge">Discharge Note</option></select></div><div><Label>Content</Label><textarea className="w-full p-3 border rounded-lg min-h-[150px] resize-none" placeholder="Enter clinical notes..." value={note.content} onChange={(e) => setNote(n => ({ ...n, content: e.target.value }))} /></div></div><div className="flex justify-end gap-2 mt-6"><Button variant="outline" onClick={() => setShowNoteModal(false)}>Cancel</Button><Button onClick={handleAddNote} disabled={saving || !note.content}>{saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Save Note</Button></div></div></div>)}
+            {showNoteModal && selectedEncounter && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-background rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-lg font-semibold">Add Clinical Note</h2>
+                                <p className="text-sm text-muted-foreground">{selectedEncounter.patient.name}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => { setShowNoteModal(false); setNoteImage(null); setNoteOcrText(''); }}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <Label>Note Type</Label>
+                                <select className="elegant-select" value={note.noteType} onChange={(e) => setNote(n => ({ ...n, noteType: e.target.value }))}>
+                                    <option value="chief-complaint">Chief Complaint</option>
+                                    <option value="history">History</option>
+                                    <option value="progress">Progress Note</option>
+                                    <option value="discharge">Discharge Note</option>
+                                </select>
+                            </div>
+
+                            {/* Note Image Upload with OCR */}
+                            <div className="p-4 border-2 border-dashed rounded-lg">
+                                <Label className="flex items-center gap-2 mb-2"><ImageIcon className="w-4 h-4" />Upload Handwritten Note (Optional)</Label>
+                                <p className="text-xs text-muted-foreground mb-3">Upload an image of handwritten notes to extract text</p>
+                                {noteImage ? (
+                                    <div className="relative inline-block">
+                                        <img src={noteImage} alt="Note" className="max-h-32 rounded-lg border" />
+                                        <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => { setNoteImage(null); setNoteOcrText(''); }}>
+                                            <X className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <label className="flex items-center justify-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                        <Upload className="w-4 h-4 text-muted-foreground" />
+                                        <span className="text-sm text-muted-foreground">Click to upload image</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleNoteImageUpload} />
+                                    </label>
+                                )}
+                                {/* OCR Extracted Text Section */}
+                                {noteImage && (
+                                    <div className="mt-3">
+                                        <Label className="flex items-center gap-2 mb-2 text-xs"><FileText className="w-3 h-3" />Extracted Text</Label>
+                                        {ocrLoading ? (
+                                            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg"><Loader2 className="w-3 h-3 animate-spin" /><span className="text-xs text-muted-foreground">Extracting text...</span></div>
+                                        ) : (
+                                            <textarea
+                                                className="w-full p-2 border rounded-lg min-h-[60px] resize-none text-xs"
+                                                placeholder="Extracted text will appear here..."
+                                                value={noteOcrText}
+                                                onChange={(e) => setNoteOcrText(e.target.value)}
+                                            />
+                                        )}
+                                        {noteOcrText && !ocrLoading && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="mt-2 w-full text-xs"
+                                                onClick={() => setNote(n => ({ ...n, content: n.content ? n.content + '\n\n' + noteOcrText : noteOcrText }))}
+                                            >
+                                                <Plus className="w-3 h-3 mr-1" />Add to Note Content
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <Label>Content</Label>
+                                <textarea className="w-full p-3 border rounded-lg min-h-[150px] resize-none" placeholder="Enter clinical notes..." value={note.content} onChange={(e) => setNote(n => ({ ...n, content: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-6">
+                            <Button variant="outline" onClick={() => { setShowNoteModal(false); setNoteImage(null); setNoteOcrText(''); }}>Cancel</Button>
+                            <Button onClick={handleAddNote} disabled={saving || !note.content}>{saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Save Note</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Day Detail Modal for Appointments */}
             {selectedDayForAppointments && (
