@@ -65,7 +65,7 @@ export default function PatientIPDPage() {
     if (error) {
         return (
             <div className="p-8">
-                 <Card className="border-destructive/50 bg-destructive/5">
+                <Card className="border-destructive/50 bg-destructive/5">
                     <CardContent className="pt-6 text-center text-destructive">
                         {error}
                     </CardContent>
@@ -93,7 +93,7 @@ export default function PatientIPDPage() {
 
     return (
         <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
-             <header>
+            <header>
                 <h1 className="text-3xl font-bold tracking-tight">Current Admission</h1>
                 <p className="text-muted-foreground mt-2">
                     Details about your current stay at MedFlow Hospital.
@@ -160,7 +160,7 @@ export default function PatientIPDPage() {
                             </p>
                         </div>
                     </div>
-                     <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-4">
                         <div className="p-2 bg-primary/10 rounded-full">
                             <UserRound className="w-5 h-5 text-primary" />
                         </div>

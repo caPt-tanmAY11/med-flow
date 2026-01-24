@@ -51,6 +51,13 @@ model user {
   role          ROLE       @default(DOCTOR)
   uhid          String?    @unique
   department    String?
+  userRoles     UserRole[]
+  account       account[]
+  session       session[]
+  opdQueues     OPDQueue[]
+  role          ROLE       @default(DOCTOR)
+  uhid          String?    @unique
+  department    String?
   OPDQueue      OPDQueue[]
   userRoles     UserRole[]
   account       account[]
@@ -319,6 +326,7 @@ model ShiftHandover {
   alerts         Json
   acknowledgedAt DateTime?
   criticalAlerts Json?
+  handoverNotes  String?
   handoverNotes  String?
 
   @@index([encounterId])
