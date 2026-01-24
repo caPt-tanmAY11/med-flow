@@ -39,7 +39,8 @@ interface FormData {
     visitType: string;
     department: string;
     priority: string;
-    referredDoctor: string;
+    referredDoctor?: string;
+    ward?: string;
 }
 
 export default function RegistrationPage() {
@@ -91,6 +92,7 @@ export default function RegistrationPage() {
         department: 'General Medicine',
         priority: 'GREEN',
         referredDoctor: '',
+        ward: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -163,8 +165,9 @@ export default function RegistrationPage() {
                     patientId: result.data.id,
                     type: formData.visitType,
                     department: formData.department,
-                    primaryDoctorId: formData.referredDoctor || undefined,
+                    primaryDoctorId: formData.visitType === 'OPD' ? formData.referredDoctor : undefined,
                     triageColor: formData.visitType === 'EMERGENCY' ? formData.priority : undefined,
+                    ward: formData.visitType === 'IPD' ? formData.ward : undefined,
                 }),
             });
 
@@ -189,7 +192,7 @@ export default function RegistrationPage() {
                 phone: '', email: '', emergency: '', emergencyName: '', emergencyRelation: '',
                 address: '', city: '', state: '', pincode: '', idType: '', idNumber: '',
                 allergies: '', conditions: '', isTemporary: false,
-                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN', referredDoctor: '',
+                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN', referredDoctor: '', ward: '',
             });
 
         } catch (error) {
@@ -455,27 +458,29 @@ export default function RegistrationPage() {
                                     <option value="ENT">ENT</option>
                                 </select>
                             </div>
-                            <div>
-                                <Label htmlFor="referredDoctor">Referred Doctor *</Label>
-                                <select
-                                    id="referredDoctor"
-                                    value={formData.referredDoctor}
-                                    onChange={handleChange}
-                                    className="elegant-select mt-1"
-                                    required
-                                >
-                                    <option value="">Select a doctor</option>
-                                    {loadingDoctors ? (
-                                        <option disabled>Loading doctors...</option>
-                                    ) : (
-                                        doctors.map(doctor => (
-                                            <option key={doctor.id} value={doctor.id}>
-                                                {doctor.name}
-                                            </option>
-                                        ))
-                                    )}
-                                </select>
-                            </div>
+                            {formData.visitType === 'OPD' && (
+                                <div className="animate-fade-in">
+                                    <Label htmlFor="referredDoctor">Referred Doctor *</Label>
+                                    <select
+                                        id="referredDoctor"
+                                        value={formData.referredDoctor}
+                                        onChange={handleChange}
+                                        className="elegant-select mt-1"
+                                        required
+                                    >
+                                        <option value="">Select a doctor</option>
+                                        {loadingDoctors ? (
+                                            <option disabled>Loading doctors...</option>
+                                        ) : (
+                                            doctors.map(doctor => (
+                                                <option key={doctor.id} value={doctor.id}>
+                                                    {doctor.name}
+                                                </option>
+                                            ))
+                                        )}
+                                    </select>
+                                </div>
+                            )}
                             {formData.visitType === 'EMERGENCY' && (
                                 <div className="animate-fade-in">
                                     <Label htmlFor="priority" className="flex items-center gap-2">
@@ -486,6 +491,23 @@ export default function RegistrationPage() {
                                         <option value="ORANGE">🟠 ORANGE (Very Urgent)</option>
                                         <option value="YELLOW">🟡 YELLOW (Urgent)</option>
                                         <option value="GREEN">🟢 GREEN (Standard)</option>
+                                    </select>
+                                </div>
+                            )}
+                            {formData.visitType === 'IPD' && (
+                                <div className="animate-fade-in">
+                                    <Label htmlFor="ward" className="flex items-center gap-2">
+                                        <Stethoscope className="w-4 h-4" /> Ward Assignment
+                                    </Label>
+                                    <select id="ward" value={formData.ward} onChange={handleChange} className="elegant-select mt-1 font-medium bg-teal-50/50 border-teal-200 text-teal-900" required>
+                                        <option value="">Select Ward Type</option>
+                                        <option value="Emergency">Emergency</option>
+                                        <option value="ICU">ICU</option>
+                                        <option value="General ward A">General ward A</option>
+                                        <option value="General ward B">General ward B</option>
+                                        <option value="Private Room (Single occupancy)">Private Room (Single occupancy)</option>
+                                        <option value="Private Room (Double occupancy)">Private Room (Double occupancy)</option>
+                                        <option value="Private Room (Triple occupancy)">Private Room (Triple occupancy)</option>
                                     </select>
                                 </div>
                             )}

@@ -134,6 +134,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Handle IPD Bed Assignment Logic
+        let selectedBedId: string | undefined;
+        if (data.type === 'IPD' && data.ward) {
+            // Find all available beds in the selected ward
+            const availableBeds = await prisma.bed.findMany({
+                where: {
+                    ward: data.ward,
+                    status: 'AVAILABLE'
+                }
+            });
+
+            if (availableBeds.length === 0) {
+                 return NextResponse.json(
+                    { error: `No beds available in ${data.ward}. Please select a different ward.` },
+                    { status: 400 }
+                );
+            }
+
+            // Randomly select one available bed
+            const randomBed = availableBeds[Math.floor(Math.random() * availableBeds.length)];
+            selectedBedId = randomBed.id;
+        }
+
         const encounter = await prisma.encounter.create({
             data: {
                 patientId: data.patientId,
@@ -158,6 +181,23 @@ export async function POST(request: NextRequest) {
                 },
             },
         });
+
+        // If a bed was selected, assign it and update status
+        if (selectedBedId) {
+             await prisma.$transaction([
+                prisma.bed.update({
+                    where: { id: selectedBedId },
+                    data: { status: 'OCCUPIED' }
+                }),
+                prisma.bedAssignment.create({
+                    data: {
+                        encounterId: encounter.id,
+                        bedId: selectedBedId,
+                        startTime: new Date()
+                    }
+                })
+            ]);
+        }
 
         // Create audit event
         await prisma.auditEvent.create({

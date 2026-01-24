@@ -56,6 +56,7 @@ export const encounterCreateSchema = z.object({
   triageColor: z.enum(['RED', 'ORANGE', 'YELLOW', 'GREEN']).optional(),
   triageNotes: z.string().optional(),
   medicoLegalFlag: z.boolean().default(false),
+  ward: z.string().optional(),
 });
 
 export const encounterUpdateSchema = z.object({
