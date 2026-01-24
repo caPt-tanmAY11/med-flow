@@ -125,149 +125,191 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in pb-10 font-inter">
+            {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
-                    <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-                    <p className="text-sm text-neutral-500 mt-1">
-                        Welcome back. Here&apos;s what&apos;s happening today.
+                    <h1 className="text-3xl font-bold tracking-tight font-inter text-slate-900">Dashboard</h1>
+                    <p className="text-slate-500 mt-2 text-base">
+                        Overview of hospital operations and key performance indicators.
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border shadow-sm">
                     <button
                         onClick={() => fetchDashboard(true)}
-                        className="pill-badge cursor-pointer hover:bg-neutral-200 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95 disabled:opacity-50"
                         disabled={refreshing}
                     >
-                        <RefreshCw className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")} />
-                        Refresh
+                        <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
+                        {refreshing ? 'Refreshing...' : 'Refresh'}
                     </button>
-                    <div className="pill-badge">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                    </div>
-                    <div className="pill-badge bg-status-success/10 text-status-success">
-                        <HeartPulse className="w-4 h-4 mr-2" />
-                        System Healthy
+                    <div className="h-6 w-px bg-slate-200" />
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-slate-600">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        {new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Primary Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, index) => (
                     <div
                         key={stat.title}
-                        className="floating-card group cursor-pointer hover:shadow-lift transition-shadow"
+                        className="relative group overflow-hidden rounded-2xl bg-white p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300"
                         style={{ animationDelay: `${index * 100}ms` }}
                     >
-                        <div className="flex items-start justify-between mb-4">
+                        <div className={cn("absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-5 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110", stat.color)} />
+                        
+                        <div className="flex items-center justify-between mb-4">
                             <div className={cn(
-                                "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-105",
-                                stat.color
+                                "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/10",
+                                "bg-gradient-to-br", stat.color
                             )}>
                                 <stat.icon className="w-6 h-6" />
                             </div>
-                            <div className={cn(
-                                "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
-                                stat.positive ? "bg-status-success/10 text-status-success" : "bg-status-critical/10 text-status-critical"
+                            <span className={cn(
+                                "flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border",
+                                stat.positive 
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                                    : "bg-rose-50 text-rose-700 border-rose-100"
                             )}>
-                                <ArrowUpRight className="w-3 h-3" />
+                                {stat.positive ? <ArrowUpRight className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
                                 {stat.change}
-                            </div>
+                            </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                        <p className="text-3xl font-bold text-foreground font-serif">{stat.value}</p>
+                        
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 mb-1">{stat.title}</p>
+                            <h3 className="text-3xl font-bold text-slate-900 tracking-tight">{stat.value}</h3>
+                        </div>
                     </div>
                 ))}
             </div>
 
+            {/* Secondary KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {secondaryStats.map((stat) => (
-                    <div key={stat.title} className="kpi-card flex items-center gap-4">
-                        <div className={cn("w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center", stat.color)}>
+                    <div key={stat.title} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4 hover:border-indigo-100 transition-colors">
+                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50", stat.color)}>
                             <stat.icon className="w-5 h-5" />
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">{stat.title}</p>
-                            <p className="text-lg font-bold text-foreground">{stat.value}</p>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900">{stat.value}</span>
+                            <span className="text-xs font-medium text-slate-400">{stat.title}</span>
                         </div>
                     </div>
                 ))}
             </div>
 
+            {/* Detailed Sections Grid */}
             <div className="grid lg:grid-cols-3 gap-6">
-                <div className="floating-card">
+                {/* Staff Section */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-primary" />
-                            Staff on Duty
-                        </h3>
-                        <span className="text-xs text-muted-foreground">{data?.staffOnDuty.total || 0} total</span>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                                <Users className="w-5 h-5 text-violet-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-900">Staff on Duty</h3>
+                                <p className="text-xs text-slate-500">{data?.staffOnDuty.total || 0} active currently</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-4 flex-1">
                         {[
-                            { label: 'Morning Shift', value: data?.staffOnDuty.morning || 0, color: 'bg-primary' },
-                            { label: 'Evening Shift', value: data?.staffOnDuty.evening || 0, color: 'bg-status-success' },
-                            { label: 'Night Shift', value: data?.staffOnDuty.night || 0, color: 'bg-status-info' },
+                            { label: 'Morning Shift', value: data?.staffOnDuty.morning || 0, color: 'bg-amber-400', bg: 'bg-amber-50' },
+                            { label: 'Evening Shift', value: data?.staffOnDuty.evening || 0, color: 'bg-indigo-400', bg: 'bg-indigo-50' },
+                            { label: 'Night Shift', value: data?.staffOnDuty.night || 0, color: 'bg-slate-700', bg: 'bg-slate-100' },
                         ].map((item) => (
-                            <div key={item.label} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={cn("w-2 h-2 rounded-full", item.color)} />
-                                    <span className="text-sm text-muted-foreground">{item.label}</span>
-                                </div>
-                                <span className="text-lg font-bold text-foreground">{item.value}</span>
+                            <div key={item.label} className="group flex items-center p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+                                <div className={cn("w-3 h-3 rounded-full mr-3 ring-4 ring-opacity-20", item.color, item.color.replace('bg-', 'ring-'))} />
+                                <span className="text-sm font-medium text-slate-600 flex-1">{item.label}</span>
+                                <span className="text-lg font-bold text-slate-900">{item.value}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="floating-card">
+                {/* Alerts Section */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5 text-status-warning" />
-                            Active Alerts
-                        </h3>
-                        <span className="status-badge bg-status-critical/10 text-status-critical">
-                            {(data?.criticalAlerts || 0) + (data?.lowStockCount || 0)} total
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                                <AlertTriangle className="w-5 h-5 text-orange-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-slate-900">Active Alerts</h3>
+                                <p className="text-xs text-slate-500">Requires attention</p>
+                            </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                            {(data?.criticalAlerts || 0) + (data?.lowStockCount || 0)} Total
                         </span>
                     </div>
+                    
                     <div className="space-y-3">
-                        <div className="p-3 bg-status-critical/5 rounded-xl border border-status-critical/20">
-                            <div className="flex items-center gap-2 text-status-critical font-medium text-sm mb-1">
-                                <div className="w-2 h-2 rounded-full bg-status-critical animate-pulse" />
-                                Critical Alerts
+                        <div className="p-4 rounded-xl bg-rose-50 border border-rose-100 group hover:shadow-sm transition-all cursor-pointer">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="relative flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                                    </span>
+                                    <span className="text-sm font-bold text-rose-700">Critical Alerts</span>
+                                </div>
+                                <span className="text-xl font-bold text-rose-900">{data?.criticalAlerts || 0}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">{data?.criticalAlerts || 0} alerts require immediate attention</p>
+                            <p className="text-xs text-rose-600/80 mt-1 pl-4.5">High priority system notifications</p>
                         </div>
-                        <div className="p-3 bg-status-warning/5 rounded-xl border border-status-warning/20">
-                            <div className="flex items-center gap-2 text-status-warning font-medium text-sm mb-1">
-                                <div className="w-2 h-2 rounded-full bg-status-warning" />
-                                Low Stock Alert
+
+                        <div className="p-4 rounded-xl bg-amber-50 border border-amber-100 group hover:shadow-sm transition-all cursor-pointer">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                                    <span className="text-sm font-bold text-amber-700">Low Stock</span>
+                                </div>
+                                <span className="text-xl font-bold text-amber-900">{data?.lowStockCount || 0}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">{data?.lowStockCount || 0} items below threshold</p>
+                            <p className="text-xs text-amber-600/80 mt-1 pl-4.5">Inventory items below reorder level</p>
                         </div>
-                        <div className="p-3 bg-status-info/5 rounded-xl border border-status-info/20">
-                            <div className="flex items-center gap-2 text-status-info font-medium text-sm mb-1">
-                                <div className="w-2 h-2 rounded-full bg-status-info" />
-                                Pending Orders
+                        
+                        <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 group hover:shadow-sm transition-all cursor-pointer">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                                    <span className="text-sm font-bold text-slate-700">Pending Orders</span>
+                                </div>
+                                <span className="text-xl font-bold text-slate-900">{data?.pendingOrders || 0}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground">{data?.pendingOrders || 0} orders awaiting processing</p>
+                             <p className="text-xs text-slate-500 mt-1 pl-4.5">Purchase orders pending approval</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="floating-card">
-                    <h3 className="font-serif text-lg font-semibold mb-6">Quick Actions</h3>
-                    <div className="grid grid-cols-2 gap-3">
+                {/* Quick Actions */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-60 -mr-20 -mt-20 pointer-events-none" />
+                    
+                    <div className="relative z-10 mb-6">
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-slate-900">
+                            <Activity className="w-5 h-5 text-indigo-600" />
+                            Quick Actions
+                        </h3>
+                        <p className="text-slate-500 text-sm">Frequently used modules</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 relative z-10 flex-1">
                         {quickActions.map((action) => (
                             <a
                                 key={action.title}
                                 href={action.href}
-                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-neutral-100/50 hover:bg-neutral-200 transition-colors group"
+                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-indigo-200 hover:shadow-md transition-all duration-300 group text-center"
                             >
-                                <action.icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
-                                <span className="text-xs font-medium text-foreground">{action.title}</span>
+                                <action.icon className="w-6 h-6 text-indigo-500 group-hover:text-indigo-600 mb-2 transition-colors" />
+                                <span className="text-xs font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">{action.title}</span>
                             </a>
                         ))}
                     </div>
@@ -275,9 +317,11 @@ export default function DashboardPage() {
             </div>
 
             {data?.lastUpdated && (
-                <p className="text-xs text-muted-foreground text-center">
-                    Last updated: {new Date(data.lastUpdated).toLocaleTimeString()}
-                </p>
+                <div className="flex justify-center pt-4">
+                    <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-400 text-xs font-medium border border-slate-200">
+                        Last updated {new Date(data.lastUpdated).toLocaleTimeString()}
+                    </span>
+                </div>
             )}
         </div>
     );
