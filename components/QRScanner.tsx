@@ -69,24 +69,131 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         setMode('processing');
 
         try {
-            const codeReader = new BrowserMultiFormatReader();
-            // Create an image element to decode
+            // Create an image element
             const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
+            const objectUrl = URL.createObjectURL(file);
+            img.src = objectUrl;
 
-            await new Promise((resolve) => { img.onload = resolve; });
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
 
-            const result = await codeReader.decodeFromImageElement(img);
-            handleQRData(result.getText());
+            // Try multiple decode strategies
+            let result = null;
+            const codeReader = new BrowserMultiFormatReader();
+
+            // Strategy 1: Direct decode
+            try {
+                result = await codeReader.decodeFromImageElement(img);
+            } catch (e) {
+                console.log('Direct decode failed, trying preprocessed...');
+            }
+
+            // Strategy 2: Preprocessed with enhanced contrast
+            if (!result) {
+                try {
+                    const processedImg = await preprocessImage(img, 'enhance');
+                    result = await codeReader.decodeFromImageElement(processedImg);
+                } catch (e) {
+                    console.log('Enhanced decode failed, trying grayscale...');
+                }
+            }
+
+            // Strategy 3: Grayscale with higher contrast
+            if (!result) {
+                try {
+                    const processedImg = await preprocessImage(img, 'grayscale');
+                    result = await codeReader.decodeFromImageElement(processedImg);
+                } catch (e) {
+                    console.log('Grayscale decode failed, trying scaled...');
+                }
+            }
+
+            // Strategy 4: Scale up small images
+            if (!result) {
+                try {
+                    const processedImg = await preprocessImage(img, 'scale');
+                    result = await codeReader.decodeFromImageElement(processedImg);
+                } catch (e) {
+                    console.log('Scaled decode failed');
+                }
+            }
+
+            // Clean up
+            URL.revokeObjectURL(objectUrl);
+
+            if (result) {
+                handleQRData(result.getText());
+            } else {
+                throw new NotFoundException('Could not detect QR code after multiple attempts');
+            }
         } catch (err) {
             console.error('File scan error:', err);
             if (err instanceof NotFoundException) {
-                setError('Could not detect QR code. Please ensure the image is clear and the QR code is fully visible.');
+                setError('Could not detect QR code. Try cropping to show only the QR code, or take a clearer photo.');
             } else {
                 setError('Failed to process image. Please try again.');
             }
             setMode('select');
         }
+    };
+
+    // Preprocess image for better QR detection
+    const preprocessImage = (img: HTMLImageElement, mode: 'enhance' | 'grayscale' | 'scale'): Promise<HTMLImageElement> => {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d')!;
+
+            // Determine target size
+            let targetWidth = img.naturalWidth;
+            let targetHeight = img.naturalHeight;
+
+            if (mode === 'scale' && (img.naturalWidth < 600 || img.naturalHeight < 600)) {
+                // Scale up small images
+                const scale = Math.max(600 / img.naturalWidth, 600 / img.naturalHeight);
+                targetWidth = Math.round(img.naturalWidth * scale);
+                targetHeight = Math.round(img.naturalHeight * scale);
+            } else if (img.naturalWidth > 2000 || img.naturalHeight > 2000) {
+                // Scale down very large images
+                const scale = Math.min(2000 / img.naturalWidth, 2000 / img.naturalHeight);
+                targetWidth = Math.round(img.naturalWidth * scale);
+                targetHeight = Math.round(img.naturalHeight * scale);
+            }
+
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            // Draw base image
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            if (mode === 'enhance' || mode === 'grayscale') {
+                // Get image data for processing
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    if (mode === 'grayscale') {
+                        // Convert to grayscale
+                        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                        data[i] = data[i + 1] = data[i + 2] = gray;
+                    }
+
+                    // Increase contrast
+                    const factor = 1.5; // Contrast factor
+                    data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
+                    data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
+                    data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // Create new image from canvas
+            const processedImg = document.createElement('img');
+            processedImg.onload = () => resolve(processedImg);
+            processedImg.src = canvas.toDataURL('image/png');
+        });
     };
 
     const handleQRData = async (qrText: string) => {

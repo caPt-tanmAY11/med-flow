@@ -7,7 +7,7 @@ export const patientCreateSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
   contact: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
-  aadhaarLast4: z.string().length(4).optional(),
+  aadhaarLast4: z.string().length(4).nullable().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -25,7 +25,7 @@ export const patientCreateSchema = z.object({
     allergen: z.string(),
     allergenType: z.enum(['drug', 'food', 'environmental']),
     severity: z.enum(['mild', 'moderate', 'severe']),
-    reaction: z.string().optional(),
+    reaction: z.string().nullable().optional(),
   })).optional(),
 });
 
@@ -35,6 +35,8 @@ export const patientSearchSchema = z.object({
   query: z.string().nullable().optional(),
   uhid: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  type: z.enum(['all', 'permanent', 'temporary']).nullable().optional(),
+  bloodGroup: z.string().nullable().optional(),
   page: z.preprocess((val) => (val === null || val === undefined || val === '') ? 1 : Number(val), z.number().min(1).default(1)),
   limit: z.preprocess((val) => (val === null || val === undefined || val === '') ? 20 : Number(val), z.number().min(1).max(100).default(20)),
 });

@@ -29,16 +29,28 @@ export async function GET(request: NextRequest) {
             query: searchParams.get('query'),
             uhid: searchParams.get('uhid'),
             phone: searchParams.get('phone'),
+            type: searchParams.get('type'),
+            bloodGroup: searchParams.get('bloodGroup'),
             page: searchParams.get('page'),
             limit: searchParams.get('limit'),
         });
 
-        const { query, uhid, phone, page, limit } = params;
+        const { query, uhid, phone, type, bloodGroup, page, limit } = params;
         const skip = (page - 1) * limit;
 
         const where: Prisma.PatientWhereInput = {
             mergedIntoPatientId: null, // Exclude merged patients
         };
+
+        if (type === 'temporary') {
+            where.isTemporary = true;
+        } else if (type === 'permanent') {
+            where.isTemporary = false;
+        }
+
+        if (bloodGroup) {
+            where.bloodGroup = bloodGroup;
+        }
 
         if (uhid) {
             where.uhid = { contains: uhid, mode: 'insensitive' };

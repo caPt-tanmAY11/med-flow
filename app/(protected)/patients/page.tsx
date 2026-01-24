@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Users, Search, RefreshCw, Loader2, Eye, Edit, ChevronLeft, ChevronRight, X, AlertTriangle, Clock, FileText, Phone, MapPin, Shield, Filter } from 'lucide-react';
+import { Users, Search, RefreshCw, Loader2, Eye, Edit, ChevronLeft, ChevronRight, X, AlertTriangle, Clock, FileText, Phone, MapPin, Shield, Filter, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -73,16 +73,13 @@ export default function PatientsPage() {
         try {
             const params = new URLSearchParams({ page: String(page), limit: '20' });
             if (query) params.append('query', query);
+            if (filters.type !== 'all') params.append('type', filters.type);
+            if (filters.bloodGroup) params.append('bloodGroup', filters.bloodGroup);
+
             const response = await fetch(`/api/patients?${params}`);
             const result = await response.json();
-            let data = result.data || [];
 
-            // Client-side filters
-            if (filters.type === 'temporary') data = data.filter((p: Patient) => p.isTemporary);
-            if (filters.type === 'permanent') data = data.filter((p: Patient) => !p.isTemporary);
-            if (filters.bloodGroup) data = data.filter((p: Patient) => p.bloodGroup === filters.bloodGroup);
-
-            setPatients(data);
+            setPatients(result.data || []);
             setPagination(result.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 });
         } catch (error) {
             console.error('Failed to fetch patients:', error);
@@ -148,6 +145,27 @@ export default function PatientsPage() {
             toast({ title: 'Error', description: 'Failed to update patient', variant: 'destructive' });
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleDelete = async (patient: Patient) => {
+        if (!confirm(`Are you sure you want to delete ${patient.name}? This action cannot be undone.`)) return;
+
+        try {
+            const response = await fetch(`/api/patients/${patient.id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                toast({ title: 'Success', description: 'Patient deleted successfully' });
+                fetchPatients(pagination.page, search);
+                if (selectedPatient?.id === patient.id) closeModal();
+            } else {
+                const error = await response.json();
+                toast({ title: 'Error', description: error.error || 'Failed to delete', variant: 'destructive' });
+            }
+        } catch {
+            toast({ title: 'Error', description: 'Failed to delete patient', variant: 'destructive' });
         }
     };
 
@@ -272,6 +290,9 @@ export default function PatientsPage() {
                                                 </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => handleEdit(patient)} title="Edit Patient">
                                                     <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(patient)} title="Delete Patient" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                                    <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </div>
                                         </td>

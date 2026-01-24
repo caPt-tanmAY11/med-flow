@@ -44,17 +44,20 @@ export async function POST(req: Request) {
                         // Map pyaadhaar output to our expected format
                         const data = result.data;
 
-                        // pyaadhaar returns keys like 'name', 'dob', 'gender', 'aadhaar_number' etc.
-                        // We need to map them to our frontend expected format
+                        // Map Python output to frontend expected format
                         const identity = {
-                            uid: data.aadhaar_last_4 || data.aadhaar_number || data.uid || "",
+                            uid: data.aadhaar_masked || (data.aadhaar_last_4 ? `XXXX XXXX ${data.aadhaar_last_4}` : ""),
                             name: data.name || "",
                             dob: data.dob || "",
                             gender: data.gender || "",
                             address: data.address || "",
-                            city: data.dist || data.vtc || "",
+                            city: data.vtc || data.district || "",
                             state: data.state || "",
-                            pincode: data.pincode || data.pc || "",
+                            pincode: data.pincode || "",
+                            // Additional fields for debugging/display
+                            reference_id: data.reference_id || "",
+                            care_of: data.care_of || "",
+                            _raw_parts: data._raw_parts || [],
                         };
 
                         resolve(NextResponse.json({

@@ -182,6 +182,11 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
 
         // Soft delete by marking as merged into self (unusual but prevents access)
         // In production, you might use a separate 'deleted' field
+        const deletedPatient = await prisma.patient.update({
+            where: { id },
+            data: { mergedIntoPatientId: id },
+        });
+
         await prisma.auditEvent.create({
             data: {
                 entityType: 'Patient',
@@ -189,11 +194,12 @@ export async function DELETE(request: NextRequest, context: RouteParams) {
                 action: 'delete',
                 performedBy: 'system', // TODO: Get from auth
                 oldValues: patient as unknown as Prisma.JsonObject,
+                newValues: { deleted: true, mergedIntoPatientId: id },
             },
         });
 
         return NextResponse.json({
-            message: 'Patient marked for deletion. Contact admin for full removal.'
+            message: 'Patient deleted successfully'
         });
     } catch (error) {
         console.error('Error deleting patient:', error);

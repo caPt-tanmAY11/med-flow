@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { UserPlus, Users, FileText, Phone, MapPin, AlertCircle, Loader2, CheckCircle, AlertTriangle, QrCode } from 'lucide-react';
+import { UserPlus, Users, FileText, Phone, MapPin, AlertCircle, Loader2, CheckCircle, AlertTriangle, QrCode, Stethoscope, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,10 @@ interface FormData {
     allergies: string;
     conditions: string;
     isTemporary: boolean;
+    // Visit Details
+    visitType: string;
+    department: string;
+    priority: string;
 }
 
 export default function RegistrationPage() {
@@ -58,6 +62,9 @@ export default function RegistrationPage() {
         allergies: '',
         conditions: '',
         isTemporary: false,
+        visitType: 'OPD',
+        department: 'General Medicine',
+        priority: 'GREEN',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -122,10 +129,32 @@ export default function RegistrationPage() {
                 name: result.data.name,
             });
 
-            toast({
-                title: "Patient Registered",
-                description: `UHID: ${result.data.uhid}`,
+            // Create Encounter
+            const encounterResponse = await fetch('/api/encounters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patientId: result.data.id,
+                    type: formData.visitType,
+                    department: formData.department,
+                    triageColor: formData.visitType === 'EMERGENCY' ? formData.priority : undefined,
+                }),
             });
+
+            const encounterResult = await encounterResponse.json();
+
+            if (!encounterResponse.ok) {
+                toast({
+                    title: "Patient Registered but Visit Creation Failed",
+                    description: encounterResult.error || "Could not create visit",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Registration Complete",
+                    description: `UHID: ${result.data.uhid} | Visit Started`,
+                });
+            }
 
             // Reset form
             setFormData({
@@ -133,6 +162,7 @@ export default function RegistrationPage() {
                 phone: '', email: '', emergency: '', emergencyName: '', emergencyRelation: '',
                 address: '', city: '', state: '', pincode: '', idType: '', idNumber: '',
                 allergies: '', conditions: '', isTemporary: false,
+                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN',
             });
 
         } catch (error) {
@@ -369,6 +399,48 @@ export default function RegistrationPage() {
                                 <Label htmlFor="conditions">Pre-existing Conditions</Label>
                                 <Input id="conditions" value={formData.conditions} onChange={handleChange} placeholder="Enter any pre-existing conditions" className="mt-1" />
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="floating-card lg:col-span-2 border-primary/20 bg-primary/5">
+                        <h3 className="font-semibold mb-4 flex items-center gap-2 text-primary">
+                            <Stethoscope className="w-4 h-4" />
+                            Visit Details (Intake)
+                        </h3>
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <div>
+                                <Label htmlFor="visitType">Visit Type</Label>
+                                <select id="visitType" value={formData.visitType} onChange={handleChange} className="elegant-select mt-1 font-medium">
+                                    <option value="OPD">OPD (Outpatient)</option>
+                                    <option value="EMERGENCY">Emergency / Casualty</option>
+                                    <option value="IPD">IPD (Admission)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label htmlFor="department">Department</Label>
+                                <select id="department" value={formData.department} onChange={handleChange} className="elegant-select mt-1">
+                                    <option value="General Medicine">General Medicine</option>
+                                    <option value="Orthopedics">Orthopedics</option>
+                                    <option value="Pediatrics">Pediatrics</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Gynecology">Gynecology</option>
+                                    <option value="Dermatology">Dermatology</option>
+                                    <option value="ENT">ENT</option>
+                                </select>
+                            </div>
+                            {formData.visitType === 'EMERGENCY' && (
+                                <div className="animate-fade-in">
+                                    <Label htmlFor="priority" className="flex items-center gap-2">
+                                        <Activity className="w-4 h-4" /> Triage Priority
+                                    </Label>
+                                    <select id="priority" value={formData.priority} onChange={handleChange} className="elegant-select mt-1 border-status-critical/50 text-status-critical font-bold">
+                                        <option value="RED">🔴 RED (Immediate)</option>
+                                        <option value="ORANGE">🟠 ORANGE (Very Urgent)</option>
+                                        <option value="YELLOW">🟡 YELLOW (Urgent)</option>
+                                        <option value="GREEN">🟢 GREEN (Standard)</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

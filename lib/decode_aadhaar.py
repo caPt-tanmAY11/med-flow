@@ -2,147 +2,221 @@ import sys
 import json
 import gzip
 import zlib
+import re
 
-# Fallback implementation if pyaadhaar fails
-class AadhaarSecureQrFallback:
+class AadhaarSecureQrDecoder:
+    """
+    Decoder for UIDAI Secure QR Code (V2)
+    
+    Secure QR contains:
+    - Reference ID (with last 4 digits of Aadhaar)
+    - Name, DOB, Gender
+    - Full Address components
+    - Digital signature (ignored in extraction-only mode)
+    """
+    
     def __init__(self, base10_data):
+        self.raw_data = str(base10_data)
         self.data = int(base10_data)
         self.decompressed_data = self._decompress()
         self.parts = self._split_data()
+        self.all_parts_text = [self._decode_part(i) for i in range(len(self.parts))]
 
     def _decompress(self):
         # Convert integer to bytes
-        # Calculate number of bytes required
         num_bytes = (self.data.bit_length() + 7) // 8
         byte_data = self.data.to_bytes(num_bytes, byteorder='big')
         
-        # Decompress using gzip
+        # Try gzip first, then zlib
         try:
             return gzip.decompress(byte_data)
         except Exception:
-            # Try zlib if gzip fails
-            return zlib.decompress(byte_data)
+            try:
+                return zlib.decompress(byte_data)
+            except Exception:
+                # Return as-is if decompression fails
+                return byte_data
 
     def _split_data(self):
         # Secure QR V2 uses delimiter 255 (0xFF)
         return self.decompressed_data.split(b'\xff')
 
-    def decodeddata(self):
-        # Mapping for Secure QR V2
-        # Based on common observation of UIDAI Secure QR format
-        # Indices can vary slightly, so we'll use a mix of index and pattern matching
-        
-        def get_val(idx):
-            if idx < len(self.parts):
-                return self.parts[idx].decode('utf-8', errors='ignore')
-            return ""
+    def _decode_part(self, idx):
+        if idx < len(self.parts):
+            try:
+                return self.parts[idx].decode('utf-8', errors='ignore').strip()
+            except:
+                return ""
+        return ""
 
-        data = {}
+    def get_all_parts(self):
+        """Return all parts for debugging"""
+        return {f"part_{i}": self._decode_part(i) for i in range(len(self.parts))}
+
+    def decodeddata(self):
+        """
+        Extract identity data from Secure QR
         
-        # Extract all parts to search through them
-        all_parts = [get_val(i) for i in range(len(self.parts))]
+        Common index mapping (may vary):
+        0: Email/Mobile hash flags
+        1: Reference ID (last digits = Aadhaar last 4)
+        2: Name
+        3: DOB (DD-MM-YYYY or DDMMYYYY or YYYY-MM-DD)
+        4: Gender (M/F)
+        5: Care Of (S/O, D/O, W/O)
+        6: District
+        7: Landmark
+        8: House
+        9: Location
+        10: Pincode
+        11: Post Office
+        12: State
+        13: Street
+        14: Sub District
+        15: VTC (Village/Town/City)
+        16+: Photo/Signature data
+        """
+        
+        data = {}
+        parts = self.all_parts_text
+        
+        # --- DEBUG: Include all parts ---
+        data['_raw_parts'] = parts[:20]  # First 20 parts for debugging
+        
+        # --- REFERENCE ID / AADHAAR LAST 4 ---
+        # Usually at index 1 or 16, format: "XXXXXXXX1234" where 1234 is last 4
+        ref_id = ""
+        aadhaar_last_4 = ""
+        
+        # Try index 1 first (common in newer format)
+        if len(parts) > 1 and parts[1].isdigit() and len(parts[1]) >= 4:
+            ref_id = parts[1]
+            aadhaar_last_4 = ref_id[-4:]
+        # Try index 16 (older format)
+        elif len(parts) > 16 and parts[16].isdigit() and len(parts[16]) >= 4:
+            ref_id = parts[16]
+            aadhaar_last_4 = ref_id[-4:]
+        else:
+            # Search for any 8+ digit number (reference ID pattern)
+            for i, part in enumerate(parts):
+                if part.isdigit() and len(part) >= 8:
+                    ref_id = part
+                    aadhaar_last_4 = part[-4:]
+                    break
+        
+        data['reference_id'] = ref_id
+        data['aadhaar_last_4'] = aadhaar_last_4
+        data['aadhaar_masked'] = f"XXXX XXXX {aadhaar_last_4}" if aadhaar_last_4 else ""
         
         # --- NAME ---
         # Usually at index 2
-        data['name'] = get_val(2)
+        name = parts[2] if len(parts) > 2 else ""
+        # Validate it looks like a name (letters and spaces)
+        if not re.match(r'^[A-Za-z\s]+$', name):
+            # Search for a name-like field
+            for part in parts[2:10]:
+                if re.match(r'^[A-Za-z][A-Za-z\s]{2,}$', part):
+                    name = part
+                    break
+        data['name'] = name
         
         # --- DOB ---
-        # Usually at index 3, but let's search for date pattern if not found or to verify
-        # Pattern: DD-MM-YYYY or DD/MM/YYYY or YYYY-MM-DD
-        import re
-        date_pattern = re.compile(r'\b\d{2}[-\/]\d{2}[-\/]\d{4}\b|\b\d{4}[-\/]\d{2}[-\/]\d{2}\b')
+        # Usually at index 3, formats: DD-MM-YYYY, DD/MM/YYYY, DDMMYYYY, YYYY-MM-DD
+        dob = ""
+        dob_raw = parts[3] if len(parts) > 3 else ""
         
-        dob_val = get_val(3)
-        if not date_pattern.search(dob_val):
-            # Search in other parts
-            for part in all_parts:
-                if date_pattern.search(part):
-                    dob_val = part
-                    break
-        data['dob'] = dob_val
-
-        # --- GENDER ---
-        # Usually at index 4 (M/F/MALE/FEMALE)
-        gender_val = get_val(4)
-        if gender_val not in ['M', 'F', 'MALE', 'FEMALE']:
-            for part in all_parts:
-                if part in ['M', 'F', 'MALE', 'FEMALE']:
-                    gender_val = part
-                    break
-        data['gender'] = gender_val
-        
-        # --- ADDRESS ---
-        # Construct address from specific indices
-        address_parts = []
-        # Indices: House(8), Street(13), Landmark(7), Loc(9), VTC(15), PO(11), SubDist(14), Dist(6), State(12), PC(10)
-        # We'll stick to indices for address components as they are less likely to be random strings
-        for idx in [8, 13, 7, 9, 15, 11, 14, 6, 12, 10]:
-            val = get_val(idx)
-            if val:
-                address_parts.append(val)
-        
-        data['address'] = ", ".join(address_parts)
-        data['dist'] = get_val(6)
-        data['state'] = get_val(12)
-        data['pincode'] = get_val(10)
-        data['vtc'] = get_val(15) # City/Village
-        
-        # --- AADHAAR / REFERENCE ID ---
-        # Index 16 usually contains the Reference ID which ends with last 4 digits of Aadhaar
-        # Format: XXXXXXXX1234 (Reference ID)
-        ref_id = get_val(16)
-        if len(ref_id) >= 4 and ref_id.isdigit():
-             data['aadhaar_last_4'] = ref_id[-4:]
+        # Pattern 1: DD-MM-YYYY or DD/MM/YYYY
+        date_match = re.search(r'(\d{2})[-/](\d{2})[-/](\d{4})', dob_raw)
+        if date_match:
+            dob = f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}"
+        # Pattern 2: DDMMYYYY (8 digits)
+        elif re.match(r'^\d{8}$', dob_raw):
+            dob = f"{dob_raw[:2]}-{dob_raw[2:4]}-{dob_raw[4:]}"
+        # Pattern 3: YYYY-MM-DD
+        elif re.match(r'^\d{4}-\d{2}-\d{2}$', dob_raw):
+            dob = dob_raw
         else:
-            # Try to find a 4-digit number at the end of any part if index 16 fails
-            # Or look for a 12-digit number (rare in secure QR)
-            if len(all_parts) > 16:
-                 # Check the last few parts
-                 for part in all_parts[-3:]:
-                     if len(part) >= 4 and part.isdigit():
-                         data['aadhaar_last_4'] = part[-4:]
-                         break
-            
-            if 'aadhaar_last_4' not in data:
-                 data['aadhaar_last_4'] = ""
-
+            # Search in all parts for a date pattern
+            for part in parts:
+                date_match = re.search(r'(\d{2})[-/](\d{2})[-/](\d{4})', part)
+                if date_match:
+                    dob = f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}"
+                    break
+                if re.match(r'^\d{8}$', part):
+                    dob = f"{part[:2]}-{part[2:4]}-{part[4:]}"
+                    break
+        
+        data['dob'] = dob
+        data['dob_raw'] = dob_raw  # For debugging
+        
+        # --- GENDER ---
+        gender = parts[4] if len(parts) > 4 else ""
+        if gender not in ['M', 'F', 'MALE', 'FEMALE', 'T', 'TRANSGENDER']:
+            # Search for gender pattern
+            for part in parts:
+                if part.upper() in ['M', 'F', 'MALE', 'FEMALE', 'T', 'TRANSGENDER']:
+                    gender = part
+                    break
+        data['gender'] = gender.upper() if gender else ""
+        
+        # --- ADDRESS COMPONENTS ---
+        data['care_of'] = parts[5] if len(parts) > 5 else ""
+        data['district'] = parts[6] if len(parts) > 6 else ""
+        data['landmark'] = parts[7] if len(parts) > 7 else ""
+        data['house'] = parts[8] if len(parts) > 8 else ""
+        data['location'] = parts[9] if len(parts) > 9 else ""
+        data['pincode'] = parts[10] if len(parts) > 10 else ""
+        data['post_office'] = parts[11] if len(parts) > 11 else ""
+        data['state'] = parts[12] if len(parts) > 12 else ""
+        data['street'] = parts[13] if len(parts) > 13 else ""
+        data['sub_district'] = parts[14] if len(parts) > 14 else ""
+        data['vtc'] = parts[15] if len(parts) > 15 else ""  # Village/Town/City
+        
+        # --- FULL ADDRESS ---
+        address_components = [
+            data['house'],
+            data['street'],
+            data['landmark'],
+            data['location'],
+            data['vtc'],
+            data['post_office'],
+            data['sub_district'],
+            data['district'],
+            data['state'],
+            data['pincode']
+        ]
+        data['address'] = ", ".join([c for c in address_components if c and c.strip()])
+        
         return data
+
 
 def decode(qr_data):
     try:
-        # Try importing pyaadhaar first
-        try:
-            from pyaadhaar.decode import AadhaarSecureQr
-            # Check if we can instantiate it (might fail if pyzbar load fails lazily)
-            # But usually import fails.
+        if not qr_data.strip():
+            raise ValueError("Empty data provided")
             
-            if not qr_data.isdigit():
-                raise ValueError("Data is not a valid Secure QR integer string")
-                
-            obj = AadhaarSecureQr(int(qr_data))
-            decoded_data = obj.decodeddata()
-            
-        except (ImportError, OSError, Exception) as e:
-            # Fallback to local implementation
-            # sys.stderr.write(f"Using fallback decoder due to: {e}\n")
-            
-            if not qr_data.isdigit():
-                raise ValueError("Data is not a valid Secure QR integer string")
-                
-            obj = AadhaarSecureQrFallback(qr_data)
-            decoded_data = obj.decodeddata()
+        if not qr_data.strip().isdigit():
+            raise ValueError("Data is not a valid Secure QR integer string. Got non-digit characters.")
+        
+        decoder = AadhaarSecureQrDecoder(qr_data.strip())
+        decoded_data = decoder.decodeddata()
         
         print(json.dumps({"success": True, "data": decoded_data}))
         
     except Exception as e:
-        print(json.dumps({"success": False, "error": str(e)}))
+        import traceback
+        print(json.dumps({
+            "success": False, 
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }))
+
 
 if __name__ == "__main__":
     # Read from stdin or args
     if len(sys.argv) > 1:
         data = sys.argv[1]
     else:
-        # Read from stdin
         try:
             data = sys.stdin.read().strip()
         except:
