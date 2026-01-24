@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { patientCreateSchema, patientSearchSchema } from '@/lib/validations';
 import { Prisma } from '@prisma/client';
+import { auth } from '@/lib/auth';
 
 // Helper to generate UHID
 function generateUHID(): string {
@@ -227,6 +228,27 @@ export async function POST(request: NextRequest) {
                 },
             });
         }
+
+        // --- Automate Patient User Account Creation ---
+        try {
+            const uhidLast6 = uhid.slice(-6);
+            const patientEmail = `${uhidLast6}@medflow.com`;
+            const patientPassword = "123456789";
+
+            await auth.api.signUpEmail({
+                body: {
+                    email: patientEmail,
+                    password: patientPassword,
+                    name: data.name,
+                    role: "PATIENT"
+                }
+            });
+            console.log(`Created user account for patient ${uhid} with email ${patientEmail}`);
+        } catch (authError) {
+            console.error('Failed to create user account for patient:', authError);
+            // We do NOT block the patient creation response if auth fails, but simply log it
+        }
+        // ----------------------------------------------
 
         // Create audit event
         await prisma.auditEvent.create({
