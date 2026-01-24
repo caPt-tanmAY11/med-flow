@@ -7,6 +7,7 @@ const prescriptionSchema = z.object({
     encounterId: z.string().uuid(),
     patientId: z.string().uuid(),
     prescribedBy: z.string(),
+    prescriptionImageUrl: z.string().nullable().optional(),
     medications: z.array(z.object({
         medicationName: z.string(),
         dosage: z.string(),
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
                 encounterId: data.encounterId,
                 patientId: data.patientId,
                 prescribedBy: data.prescribedBy,
+                prescriptionImageUrl: data.prescriptionImageUrl,
                 medications: {
                     create: data.medications.map(m => ({
                         medicationName: m.medicationName,

@@ -39,6 +39,10 @@ export async function GET(request: NextRequest) {
                             gender: true,
                             dob: true,
                             contact: true,
+                            allergies: {
+                                where: { isActive: true },
+                                select: { allergen: true, severity: true },
+                            },
                         },
                     },
                     bedAssignments: {
