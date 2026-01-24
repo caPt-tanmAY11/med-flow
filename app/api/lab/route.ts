@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { addBillItem, getLabTestPrice } from '@/lib/billing-utils';
 
 const labResultSchema = z.object({
     orderId: z.string().uuid(),
@@ -28,6 +29,17 @@ export async function GET(request: NextRequest) {
         if (status) orderWhere.status = status;
         if (priority) orderWhere.priority = priority as 'STAT' | 'URGENT' | 'ROUTINE';
 
+        // Fetch pricing for display
+        const labTariffs = await prisma.tariffMaster.findMany({
+            where: { category: 'lab', isActive: true },
+        });
+        const priceMap = labTariffs.reduce((acc, t) => {
+            // Extract test code from tariff code (e.g., LAB-CBC -> CBC)
+            const testCode = t.tariffCode.replace('LAB-', '');
+            acc[testCode] = t.basePrice;
+            return acc;
+        }, {} as Record<string, number>);
+
         const [orders, total] = await Promise.all([
             prisma.order.findMany({
                 where: orderWhere,
@@ -49,6 +61,12 @@ export async function GET(request: NextRequest) {
             prisma.order.count({ where: orderWhere }),
         ]);
 
+        // Add price to each order
+        const ordersWithPrice = orders.map(order => ({
+            ...order,
+            price: priceMap[order.orderCode] || priceMap[order.orderCode.toUpperCase()] || 400,
+        }));
+
         // Summary stats
         const stats = await prisma.order.groupBy({
             by: ['status'],
@@ -61,7 +79,8 @@ export async function GET(request: NextRequest) {
         });
 
         return NextResponse.json({
-            data: orders,
+            data: ordersWithPrice,
+            pricing: priceMap,
             stats: {
                 byStatus: stats.reduce((acc, s) => ({ ...acc, [s.status]: s._count.id }), {}),
                 criticalUnverified: criticalCount,
@@ -110,6 +129,26 @@ export async function POST(request: NextRequest) {
             data: { status: 'completed' },
         });
 
+        // AUTO-BILLING: Add lab test fee to patient's bill
+        if (order.encounter) {
+            try {
+                const testPrice = await getLabTestPrice(order.orderCode);
+                await addBillItem({
+                    encounterId: order.encounterId,
+                    patientId: order.encounter.patientId,
+                    category: 'lab',
+                    department: 'LABORATORY',
+                    itemCode: `LAB-${order.orderCode}`,
+                    description: order.orderName,
+                    quantity: 1,
+                    unitPrice: testPrice,
+                });
+            } catch (billingError) {
+                console.error('Auto-billing error (non-fatal):', billingError);
+                // Continue even if billing fails
+            }
+        }
+
         // Create critical value alert if needed
         if (data.isCritical && order.encounter) {
             await prisma.safetyAlert.create({
@@ -140,3 +179,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to create lab result' }, { status: 500 });
     }
 }
+

@@ -149,6 +149,12 @@ export const navigationConfig: NavGroup[] = [
                 roles: ['ADMIN', 'BILLING', 'FRONT_DESK'],
             },
             {
+                title: 'Dept Income',
+                href: '/finance',
+                icon: BarChart3,
+                roles: ['ADMIN', 'BILLING', 'MANAGEMENT'],
+            },
+            {
                 title: 'ClaimSahayak',
                 href: '/insurance',
                 icon: Shield,

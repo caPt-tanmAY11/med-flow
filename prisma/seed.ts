@@ -49,16 +49,64 @@ async function main() {
     }
     console.log(`  ✓ Created ${inventoryItems.length} inventory items`);
 
-    // Create Tariffs
+    // Create Tariffs - Comprehensive pricing for Paisa Tracker
     console.log('Creating tariffs...');
     const tariffs = [
+        // Consultation Fees by Department
         { tariffCode: 'CON-GEN', category: 'consultation', description: 'General Consultation', basePrice: 500 },
         { tariffCode: 'CON-SPE', category: 'consultation', description: 'Specialist Consultation', basePrice: 1000 },
+        { tariffCode: 'CON-CAR', category: 'consultation', description: 'Cardiology Consultation', basePrice: 1200 },
+        { tariffCode: 'CON-ORT', category: 'consultation', description: 'Orthopedics Consultation', basePrice: 1000 },
+        { tariffCode: 'CON-GYN', category: 'consultation', description: 'Gynecology Consultation', basePrice: 1000 },
+        { tariffCode: 'CON-PED', category: 'consultation', description: 'Pediatrics Consultation', basePrice: 800 },
+        { tariffCode: 'CON-DER', category: 'consultation', description: 'Dermatology Consultation', basePrice: 700 },
+        { tariffCode: 'CON-NEU', category: 'consultation', description: 'Neurology Consultation', basePrice: 1500 },
+
+        // Bed Charges
         { tariffCode: 'BED-GEN', category: 'bed', description: 'General Ward (per day)', basePrice: 1500 },
+        { tariffCode: 'BED-PRI', category: 'bed', description: 'Private Room (per day)', basePrice: 5000 },
         { tariffCode: 'BED-ICU', category: 'bed', description: 'ICU (per day)', basePrice: 15000 },
+        { tariffCode: 'BED-EME', category: 'bed', description: 'Emergency (per day)', basePrice: 3000 },
+
+        // Laboratory Tests
         { tariffCode: 'LAB-CBC', category: 'lab', description: 'Complete Blood Count', basePrice: 400 },
         { tariffCode: 'LAB-LFT', category: 'lab', description: 'Liver Function Test', basePrice: 800 },
+        { tariffCode: 'LAB-KFT', category: 'lab', description: 'Kidney Function Test', basePrice: 700 },
+        { tariffCode: 'LAB-LIPID', category: 'lab', description: 'Lipid Profile', basePrice: 600 },
+        { tariffCode: 'LAB-HBA1C', category: 'lab', description: 'Glycated Hemoglobin (HbA1c)', basePrice: 550 },
+        { tariffCode: 'LAB-TSH', category: 'lab', description: 'Thyroid Function Test', basePrice: 450 },
+        { tariffCode: 'LAB-TFT', category: 'lab', description: 'Thyroid Profile Complete', basePrice: 900 },
+        { tariffCode: 'LAB-URINE', category: 'lab', description: 'Urine Routine', basePrice: 150 },
+        { tariffCode: 'LAB-ESR', category: 'lab', description: 'ESR Test', basePrice: 100 },
+        { tariffCode: 'LAB-CRP', category: 'lab', description: 'C-Reactive Protein', basePrice: 500 },
+        { tariffCode: 'LAB-BLOOD-SUGAR', category: 'lab', description: 'Blood Sugar Fasting', basePrice: 100 },
+        { tariffCode: 'LAB-BLOOD-PP', category: 'lab', description: 'Blood Sugar PP', basePrice: 100 },
+
+        // Radiology
+        { tariffCode: 'RAD-XRAY', category: 'radiology', description: 'X-Ray', basePrice: 500 },
         { tariffCode: 'RAD-CT', category: 'radiology', description: 'CT Scan', basePrice: 5000 },
+        { tariffCode: 'RAD-MRI', category: 'radiology', description: 'MRI Scan', basePrice: 8000 },
+        { tariffCode: 'RAD-USG', category: 'radiology', description: 'Ultrasound', basePrice: 800 },
+        { tariffCode: 'RAD-ECG', category: 'radiology', description: 'ECG', basePrice: 200 },
+        { tariffCode: 'RAD-ECHO', category: 'radiology', description: 'Echocardiogram', basePrice: 2500 },
+
+        // Pharmacy (Common Medications)
+        { tariffCode: 'MED-PARA', category: 'pharmacy', description: 'Paracetamol 500mg', basePrice: 5 },
+        { tariffCode: 'MED-AMOX', category: 'pharmacy', description: 'Amoxicillin 250mg', basePrice: 15 },
+        { tariffCode: 'MED-OMEP', category: 'pharmacy', description: 'Omeprazole 20mg', basePrice: 8 },
+        { tariffCode: 'MED-METF', category: 'pharmacy', description: 'Metformin 500mg', basePrice: 4 },
+        { tariffCode: 'MED-AMLO', category: 'pharmacy', description: 'Amlodipine 5mg', basePrice: 10 },
+        { tariffCode: 'MED-ATOR', category: 'pharmacy', description: 'Atorvastatin 10mg', basePrice: 12 },
+
+        // Procedures
+        { tariffCode: 'PROC-DRESS', category: 'procedure', description: 'Dressing', basePrice: 200 },
+        { tariffCode: 'PROC-INJECT', category: 'procedure', description: 'Injection Charges', basePrice: 50 },
+        { tariffCode: 'PROC-IV', category: 'procedure', description: 'IV Fluid Administration', basePrice: 150 },
+        { tariffCode: 'PROC-CATH', category: 'procedure', description: 'Catheterization', basePrice: 500 },
+
+        // Emergency
+        { tariffCode: 'EME-REG', category: 'emergency', description: 'Emergency Registration', basePrice: 300 },
+        { tariffCode: 'EME-RESUS', category: 'emergency', description: 'Resuscitation Charges', basePrice: 5000 },
     ];
     for (const t of tariffs) {
         await prisma.tariffMaster.upsert({ where: { tariffCode: t.tariffCode }, update: {}, create: { ...t, effectiveFrom: new Date('2024-01-01') } });
@@ -212,9 +260,12 @@ async function main() {
         const enc = createdEncounters[i];
         const totalAmount = 5000 + Math.floor(Math.random() * 20000);
         const paidAmount = i < 2 ? totalAmount : i === 2 ? totalAmount * 0.5 : 0;
-        const bill = await prisma.bill.create({
-            data: {
-                billNumber: `BILL-2024-${String(i + 1).padStart(6, '0')}`,
+        const billNumber = `BILL-2024-${String(i + 1).padStart(6, '0')}`;
+        const bill = await prisma.bill.upsert({
+            where: { billNumber },
+            update: {},
+            create: {
+                billNumber,
                 patientId: enc.patientId,
                 encounterId: enc.id,
                 status: paidAmount === totalAmount ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
@@ -224,13 +275,152 @@ async function main() {
                 balanceDue: totalAmount - paidAmount,
             },
         });
-        await prisma.billItem.create({ data: { billId: bill.id, category: 'consultation', description: 'Consultation Fee', quantity: 1, unitPrice: 1000, totalPrice: 1000 } });
-        await prisma.billItem.create({ data: { billId: bill.id, category: 'bed', description: 'Bed Charges (2 days)', quantity: 2, unitPrice: 1500, totalPrice: 3000 } });
+        // Only create bill items if this is a new bill (check by items count)
+        const existingItems = await prisma.billItem.count({ where: { billId: bill.id } });
+        if (existingItems === 0) {
+            await prisma.billItem.create({ data: { billId: bill.id, category: 'consultation', department: 'CONSULTATION', description: 'Consultation Fee', quantity: 1, unitPrice: 1000, totalPrice: 1000 } });
+            await prisma.billItem.create({ data: { billId: bill.id, category: 'bed', department: 'WARD_SERVICES', description: 'Bed Charges (2 days)', quantity: 2, unitPrice: 1500, totalPrice: 3000 } });
+        }
         if (paidAmount > 0) {
-            await prisma.payment.create({ data: { billId: bill.id, amount: paidAmount, paymentMode: 'cash', receivedBy: 'Cashier' } });
+            const existingPayment = await prisma.payment.findFirst({ where: { billId: bill.id } });
+            if (!existingPayment) {
+                await prisma.payment.create({ data: { billId: bill.id, amount: paidAmount, paymentMode: 'cash', receivedBy: 'Cashier' } });
+            }
         }
     }
     console.log(`  ✓ Created bills and payments`);
+
+    // Create comprehensive department-wise billing data for Paisa Tracker
+    console.log('Creating department-wise revenue data...');
+    const departments = [
+        'CARDIOLOGY', 'GYNECOLOGY', 'GASTROENTEROLOGY', 'ORTHOPEDICS', 'NEUROLOGY',
+        'PEDIATRICS', 'DERMATOLOGY', 'OPHTHALMOLOGY', 'ENT', 'PULMONOLOGY',
+        'NEPHROLOGY', 'UROLOGY', 'ONCOLOGY', 'PSYCHIATRY', 'GENERAL_MEDICINE'
+    ];
+
+    const deptServices = {
+        'CARDIOLOGY': [
+            { desc: 'ECG', price: 200 }, { desc: 'Echo', price: 2500 }, { desc: 'TMT', price: 1500 },
+            { desc: 'Angiography', price: 25000 }, { desc: 'Cardiac Consultation', price: 1200 }
+        ],
+        'GYNECOLOGY': [
+            { desc: 'Ultrasound', price: 800 }, { desc: 'Pap Smear', price: 500 }, { desc: 'Mammography', price: 1200 },
+            { desc: 'Delivery Charges', price: 15000 }, { desc: 'Gynec Consultation', price: 1000 }
+        ],
+        'GASTROENTEROLOGY': [
+            { desc: 'Endoscopy', price: 5000 }, { desc: 'Colonoscopy', price: 8000 }, { desc: 'LFT', price: 800 },
+            { desc: 'Ultrasound Abdomen', price: 1000 }, { desc: 'Gastro Consultation', price: 1000 }
+        ],
+        'ORTHOPEDICS': [
+            { desc: 'X-Ray', price: 500 }, { desc: 'MRI', price: 8000 }, { desc: 'CT Scan', price: 5000 },
+            { desc: 'Plaster/Cast', price: 1500 }, { desc: 'Ortho Consultation', price: 1000 }
+        ],
+        'NEUROLOGY': [
+            { desc: 'EEG', price: 1500 }, { desc: 'MRI Brain', price: 10000 }, { desc: 'Nerve Conduction', price: 2500 },
+            { desc: 'Neuro Consultation', price: 1500 }, { desc: 'Lumbar Puncture', price: 3000 }
+        ],
+        'PEDIATRICS': [
+            { desc: 'Vaccination', price: 500 }, { desc: 'Neonatal Care', price: 5000 }, { desc: 'Pediatric Consultation', price: 800 },
+            { desc: 'Growth Assessment', price: 300 }, { desc: 'Nebulization', price: 200 }
+        ],
+        'DERMATOLOGY': [
+            { desc: 'Skin Biopsy', price: 2000 }, { desc: 'Laser Treatment', price: 5000 }, { desc: 'Allergy Test', price: 1500 },
+            { desc: 'Derma Consultation', price: 700 }, { desc: 'Acne Treatment', price: 1000 }
+        ],
+        'OPHTHALMOLOGY': [
+            { desc: 'Eye Exam', price: 500 }, { desc: 'Cataract Surgery', price: 25000 }, { desc: 'Fundoscopy', price: 800 },
+            { desc: 'Lasik Evaluation', price: 2000 }, { desc: 'Ophtha Consultation', price: 600 }
+        ],
+        'ENT': [
+            { desc: 'Audiometry', price: 800 }, { desc: 'Endoscopy Nasal', price: 2000 }, { desc: 'Tonsillectomy', price: 15000 },
+            { desc: 'ENT Consultation', price: 600 }, { desc: 'Hearing Aid Fitting', price: 5000 }
+        ],
+        'PULMONOLOGY': [
+            { desc: 'PFT', price: 1500 }, { desc: 'Bronchoscopy', price: 10000 }, { desc: 'Chest X-Ray', price: 500 },
+            { desc: 'Pulmo Consultation', price: 1000 }, { desc: 'Sleep Study', price: 8000 }
+        ],
+        'NEPHROLOGY': [
+            { desc: 'Dialysis', price: 3000 }, { desc: 'KFT', price: 700 }, { desc: 'Kidney Biopsy', price: 5000 },
+            { desc: 'Nephro Consultation', price: 1200 }, { desc: 'Ultrasound Kidney', price: 800 }
+        ],
+        'UROLOGY': [
+            { desc: 'Cystoscopy', price: 5000 }, { desc: 'PSA Test', price: 800 }, { desc: 'Urodynamic Study', price: 3000 },
+            { desc: 'Uro Consultation', price: 1000 }, { desc: 'TURP', price: 35000 }
+        ],
+        'ONCOLOGY': [
+            { desc: 'Chemotherapy', price: 15000 }, { desc: 'Biopsy', price: 5000 }, { desc: 'PET Scan', price: 25000 },
+            { desc: 'Onco Consultation', price: 1500 }, { desc: 'Radiation Therapy', price: 20000 }
+        ],
+        'PSYCHIATRY': [
+            { desc: 'Psychological Assessment', price: 2000 }, { desc: 'Therapy Session', price: 1500 }, { desc: 'Psychiatry Consultation', price: 1200 },
+            { desc: 'Counseling', price: 800 }, { desc: 'Rehab Program', price: 10000 }
+        ],
+        'GENERAL_MEDICINE': [
+            { desc: 'CBC', price: 400 }, { desc: 'Lipid Profile', price: 600 }, { desc: 'Thyroid Test', price: 450 },
+            { desc: 'General Consultation', price: 500 }, { desc: 'Health Checkup', price: 3000 }
+        ],
+    };
+
+    // Create 50+ varied bill items across departments
+    for (let billNum = 50; billNum <= 85; billNum++) {
+        const billNumber = `BILL-2024-${String(billNum).padStart(6, '0')}`;
+        const patient = createdPatients[billNum % createdPatients.length];
+        const dept = departments[billNum % departments.length];
+        const services = deptServices[dept as keyof typeof deptServices] || deptServices['GENERAL_MEDICINE'];
+
+        const existingBill = await prisma.bill.findUnique({ where: { billNumber } });
+        if (!existingBill) {
+            // Random amounts
+            const numServices = 1 + (billNum % 4);
+            let subtotal = 0;
+            const items: { desc: string; price: number }[] = [];
+            for (let s = 0; s < numServices; s++) {
+                const service = services[s % services.length];
+                items.push(service);
+                subtotal += service.price;
+            }
+
+            const paidAmount = billNum % 3 === 0 ? subtotal : billNum % 3 === 1 ? subtotal * 0.5 : 0;
+
+            const bill = await prisma.bill.create({
+                data: {
+                    billNumber,
+                    patientId: patient.id,
+                    status: paidAmount === subtotal ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
+                    subtotal,
+                    totalAmount: subtotal,
+                    paidAmount,
+                    balanceDue: subtotal - paidAmount,
+                },
+            });
+
+            for (const item of items) {
+                await prisma.billItem.create({
+                    data: {
+                        billId: bill.id,
+                        category: 'service',
+                        department: dept,
+                        description: item.desc,
+                        quantity: 1,
+                        unitPrice: item.price,
+                        totalPrice: item.price,
+                    },
+                });
+            }
+
+            if (paidAmount > 0) {
+                await prisma.payment.create({
+                    data: {
+                        billId: bill.id,
+                        amount: paidAmount,
+                        paymentMode: billNum % 2 === 0 ? 'cash' : 'card',
+                        receivedBy: 'Cashier',
+                    },
+                });
+            }
+        }
+    }
+    console.log(`  ✓ Created department-wise revenue data (25 bills across 15 departments)`);
 
     // Create Surgeries
     console.log('Creating surgeries...');
@@ -352,26 +542,39 @@ async function main() {
     ];
     const createdVendors: { id: string; name: string }[] = [];
     for (const vendor of vendors) {
-        const v = await prisma.vendor.create({ data: vendor });
-        createdVendors.push({ id: v.id, name: v.name });
+        // Check if vendor already exists
+        const existing = await prisma.vendor.findFirst({ where: { email: vendor.email } });
+        if (existing) {
+            createdVendors.push({ id: existing.id, name: existing.name });
+        } else {
+            const v = await prisma.vendor.create({ data: vendor });
+            createdVendors.push({ id: v.id, name: v.name });
+        }
     }
     console.log(`  ✓ Created ${vendors.length} vendors`);
 
     // Create Purchase Orders
     console.log('Creating purchase orders...');
     for (let i = 0; i < 3; i++) {
-        const po = await prisma.purchaseOrder.create({
-            data: {
-                vendorId: createdVendors[i].id,
-                poNumber: `PO-2024-${String(i + 1).padStart(6, '0')}`,
-                status: ['approved', 'received', 'draft'][i],
-                totalAmount: 50000 + i * 25000,
-                createdBy: 'admin',
-                approvedBy: i < 2 ? 'manager' : null,
-                approvedAt: i < 2 ? new Date() : null,
-            },
-        });
-        await prisma.purchaseOrderItem.create({ data: { poId: po.id, itemId: (await prisma.inventoryItem.findFirst())?.id || '', quantity: 100, unitPrice: 50 } });
+        const poNumber = `PO-2024-${String(i + 1).padStart(6, '0')}`;
+        const existingPO = await prisma.purchaseOrder.findUnique({ where: { poNumber } });
+        if (!existingPO) {
+            const po = await prisma.purchaseOrder.create({
+                data: {
+                    vendorId: createdVendors[i].id,
+                    poNumber,
+                    status: ['approved', 'received', 'draft'][i],
+                    totalAmount: 50000 + i * 25000,
+                    createdBy: 'admin',
+                    approvedBy: i < 2 ? 'manager' : null,
+                    approvedAt: i < 2 ? new Date() : null,
+                },
+            });
+            const inventoryItem = await prisma.inventoryItem.findFirst();
+            if (inventoryItem) {
+                await prisma.purchaseOrderItem.create({ data: { poId: po.id, itemId: inventoryItem.id, quantity: 100, unitPrice: 50 } });
+            }
+        }
     }
     console.log(`  ✓ Created purchase orders`);
 
@@ -483,9 +686,12 @@ async function main() {
         { name: 'Diabetic Ketoacidosis', category: 'metabolic', description: 'DKA management protocol' },
     ];
     for (let i = 0; i < orderSets.length; i++) {
-        const os = await prisma.orderSet.create({ data: orderSets[i] });
-        await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'lab', itemCode: 'CBC', itemName: 'Complete Blood Count', sortOrder: 1 } });
-        await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'medication', itemCode: 'MED-001', itemName: 'Paracetamol 500mg', sortOrder: 2 } });
+        const existing = await prisma.orderSet.findFirst({ where: { name: orderSets[i].name } });
+        if (!existing) {
+            const os = await prisma.orderSet.create({ data: orderSets[i] });
+            await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'lab', itemCode: 'CBC', itemName: 'Complete Blood Count', sortOrder: 1 } });
+            await prisma.orderSetItem.create({ data: { orderSetId: os.id, itemType: 'medication', itemCode: 'MED-001', itemName: 'Paracetamol 500mg', sortOrder: 2 } });
+        }
     }
     console.log(`  ✓ Created order sets`);
 

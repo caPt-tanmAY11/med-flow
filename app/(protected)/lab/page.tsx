@@ -17,6 +17,7 @@ interface LabOrder {
     orderedAt: string;
     patientId: string;
     encounterId: string;
+    price?: number;
     sample: { id: string; barcode: string; status: string } | null;
     labResult: { id: string; isCritical: boolean; verifiedAt: string | null; result: Record<string, unknown> } | null;
     encounter: { patient: { uhid: string; name: string } };
@@ -157,13 +158,14 @@ export default function LabPage() {
                 {loading ? <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div> : orders.length === 0 ? <p className="text-center text-muted-foreground py-8">No lab orders found</p> : (
                     <table className="w-full">
                         <thead className="bg-muted/50">
-                            <tr><th className="text-left p-3 text-xs font-medium text-muted-foreground">Priority</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Test</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Patient</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Barcode</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Result</th><th className="text-right p-3 text-xs font-medium text-muted-foreground">Actions</th></tr>
+                            <tr><th className="text-left p-3 text-xs font-medium text-muted-foreground">Priority</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Test</th><th className="text-right p-3 text-xs font-medium text-muted-foreground">Price</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Patient</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Barcode</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Status</th><th className="text-left p-3 text-xs font-medium text-muted-foreground">Result</th><th className="text-right p-3 text-xs font-medium text-muted-foreground">Actions</th></tr>
                         </thead>
                         <tbody className="divide-y">
                             {orders.map((order) => (
                                 <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                                     <td className="p-3"><span className={cn("px-2 py-1 text-xs rounded font-medium", getPriorityBadge(order.priority))}>{order.priority}</span></td>
                                     <td className="p-3"><p className="font-medium text-sm">{order.orderName}</p><p className="text-xs text-muted-foreground">{order.orderCode}</p></td>
+                                    <td className="p-3 text-right"><span className="text-sm font-medium text-primary">₹{order.price || 400}</span></td>
                                     <td className="p-3"><p className="text-sm">{order.encounter.patient.name}</p><p className="text-xs text-muted-foreground">{order.encounter.patient.uhid}</p></td>
                                     <td className="p-3 font-mono text-sm">{order.sample?.barcode || '-'}</td>
                                     <td className="p-3"><span className={cn("px-2 py-1 text-xs rounded capitalize", getStatusBadge(order.status))}>{order.status}</span></td>
