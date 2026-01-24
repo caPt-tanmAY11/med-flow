@@ -109,7 +109,12 @@ export default function PharmacyPage() {
                                         {pendingMeds.length > 0 && (
                                             <Button size="sm" onClick={() => handleDispenseAll(rx)}>Dispense All ({pendingMeds.length})</Button>
                                         )}
-                                        <span className={cn("px-2 py-1 text-xs rounded capitalize", rx.status === 'active' ? 'bg-status-warning/10 text-status-warning' : 'bg-status-success/10 text-status-success')}>{rx.status}</span>
+                                        <span className={cn("px-2 py-1 text-xs rounded capitalize",
+                                            rx.status === 'active' ? 'bg-status-warning/10 text-status-warning' : 'bg-status-success/10 text-status-success'
+                                        )}>{rx.status}</span>
+                                        {rx.encounter.type === 'EMERGENCY' && (
+                                            <span className="px-2 py-1 text-xs rounded bg-destructive/10 text-destructive font-bold animate-pulse">STAT / ER</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="space-y-2">

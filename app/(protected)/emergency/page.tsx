@@ -1,244 +1,386 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Ambulance, AlertTriangle, Clock, Users, Plus, RefreshCw, Loader2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertCircle, Clock, Activity, Search, RefreshCw, Stethoscope, Pill, Megaphone, Plus, MoreVertical, X, Users, Ambulance, Syringe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
-interface Encounter {
-    id: string;
-    type: string;
-    status: string;
-    triageColor: string | null;
+// Interfaces
+interface EmergencyPatient {
+    id: string; // encounterId
+    patient: {
+        id: string;
+        name: string;
+        uhid: string;
+        gender: string;
+        age: number;
+        allergies: any[];
+    };
+    triageColor: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | null;
+    priority: string;
     arrivalTime: string;
-    currentLocation: string | null;
-    medicoLegalFlag: boolean;
-    patient: { id: string; uhid: string; name: string; gender: string };
-    bedAssignments: { bed: { bedNumber: string; ward: string } }[];
+    waitingFor: string | null;
+    vitalSigns: any[];
+    bedAssignments: any[];
 }
 
-export default function EmergencyPage() {
-    const { toast } = useToast();
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [encounters, setEncounters] = useState<Encounter[]>([]);
-    const [stats, setStats] = useState({ immediate: 0, urgent: 0, delayed: 0, minor: 0 });
-    const [showNewModal, setShowNewModal] = useState(false);
-    const [patients, setPatients] = useState<{ id: string; uhid: string; name: string }[]>([]);
-    const [newCase, setNewCase] = useState({ patientId: '', triageColor: 'YELLOW', medicoLegalFlag: false, triageNotes: '' });
-    const [saving, setSaving] = useState(false);
-    const [selectedEncounter, setSelectedEncounter] = useState<Encounter | null>(null);
+interface Stats {
+    total: number;
+    critical: number;
+    untriaged: number;
+    avgWaitMinutes: number;
+}
 
-    const fetchEmergency = async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
-        try {
-            const response = await fetch('/api/encounters?type=EMERGENCY&status=ACTIVE');
-            const result = await response.json();
-            if (result.data) {
-                setEncounters(result.data);
-                const newStats = { immediate: 0, urgent: 0, delayed: 0, minor: 0 };
-                result.data.forEach((e: Encounter) => {
-                    if (e.triageColor === 'RED') newStats.immediate++;
-                    else if (e.triageColor === 'ORANGE') newStats.urgent++;
-                    else if (e.triageColor === 'YELLOW') newStats.delayed++;
-                    else newStats.minor++;
-                });
-                setStats(newStats);
-            }
-        } catch (error) {
-            console.error('Failed to fetch emergency data:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+const EMERGENCY_MEDS = [
+    { id: 'm1', name: 'Adrenaline', dose: '1mg', route: 'IV' },
+    { id: 'm2', name: 'Atropine', dose: '0.5mg', route: 'IV' },
+    { id: 'm3', name: 'Aspirin', dose: '300mg', route: 'PO' },
+    { id: 'm4', name: 'Nitroglycerin', dose: '0.4mg', route: 'SL' },
+    { id: 'm5', name: 'Morphine', dose: '2mg', route: 'IV' },
+    { id: 'm6', name: 'Ondansetron', dose: '4mg', route: 'IV' },
+];
+
+export default function EmergencyDashboard() {
+    const { toast } = useToast();
+    const [patients, setPatients] = useState<EmergencyPatient[]>([]);
+    const [stats, setStats] = useState<Stats>({ total: 0, critical: 0, untriaged: 0, avgWaitMinutes: 0 });
+    const [loading, setLoading] = useState(true);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    // Action States
+    const [selectedPatient, setSelectedPatient] = useState<EmergencyPatient | null>(null);
+    const [showMedsModal, setShowMedsModal] = useState(false);
+    const [showArrivalModal, setShowArrivalModal] = useState(false);
+    const [processing, setProcessing] = useState(false);
+
+    // Forms
+    const [newPatient, setNewPatient] = useState({
+        name: '', age: '', gender: 'Male', complaint: '',
+        triageColor: 'YELLOW',
+        bpSystolic: '', bpDiastolic: '', pulse: '', spO2: '', temp: '',
+        isMLC: false, mlcType: 'Accident', policeStation: ''
+    });
+
+    const [customMed, setCustomMed] = useState({ name: '', dose: '', route: 'IV' });
 
     const fetchPatients = async () => {
+        setLoading(true);
         try {
-            const response = await fetch('/api/patients?limit=100');
-            const result = await response.json();
-            setPatients(result.data || []);
+            const res = await fetch('/api/emergency');
+            const data = await res.json();
+            if (res.ok) {
+                setPatients(data.data || []);
+                setStats(data.stats || { total: 0, critical: 0, untriaged: 0, avgWaitMinutes: 0 });
+            }
         } catch (error) {
-            console.error('Failed to fetch patients:', error);
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchEmergency();
         fetchPatients();
-        const interval = setInterval(() => fetchEmergency(true), 30000);
+        const interval = setInterval(() => setCurrentTime(new Date()), 60000);
         return () => clearInterval(interval);
     }, []);
 
-    const handleNewEmergency = async () => {
-        if (!newCase.patientId) {
-            toast({ title: 'Error', description: 'Please select a patient', variant: 'destructive' });
-            return;
+    // Get Wait Time
+    const getWaitTime = (arrivalTime: string) => {
+        const arrival = new Date(arrivalTime);
+        const diffMs = currentTime.getTime() - arrival.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+    };
+
+    const getTriageColor = (color: string | null) => {
+        switch (color) {
+            case 'RED': return 'bg-red-100 border-red-500 text-red-900 dark:bg-red-950/40 dark:border-red-600 dark:text-red-100';
+            case 'ORANGE': return 'bg-orange-100 border-orange-500 text-orange-900 dark:bg-orange-950/40 dark:border-orange-600 dark:text-orange-100';
+            case 'YELLOW': return 'bg-yellow-100 border-yellow-500 text-yellow-900 dark:bg-yellow-950/40 dark:border-yellow-600 dark:text-yellow-100';
+            case 'GREEN': return 'bg-green-100 border-green-500 text-green-900 dark:bg-green-950/40 dark:border-green-600 dark:text-green-100';
+            default: return 'bg-muted';
         }
-        setSaving(true);
+    };
+
+    // Actions
+    const handleCallDoctor = async (patient: EmergencyPatient) => {
         try {
-            const response = await fetch('/api/encounters', {
+            toast({ title: 'Calling Doctor...', description: `Paging doctor for ${patient.patient.name}` });
+            await fetch('/api/emergency?action=call-doctor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ encounterId: patient.id, patientId: patient.patient.id, reason: 'Emergency Request' })
+            });
+            toast({ title: 'Success', description: 'Doctor has been notified.' });
+        } catch { }
+    };
+
+    const handleOrderMeds = async (medName: string, dose: string, route: string) => {
+        if (!selectedPatient) return;
+        setProcessing(true);
+        try {
+            const res = await fetch('/api/emergency?action=order-meds', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    patientId: newCase.patientId,
-                    type: 'EMERGENCY',
-                    triageColor: newCase.triageColor,
-                    medicoLegalFlag: newCase.medicoLegalFlag,
-                    triageNotes: newCase.triageNotes,
-                }),
+                    encounterId: selectedPatient.id,
+                    patientId: selectedPatient.patient.id,
+                    medicationName: medName,
+                    dosage: dose,
+                    route: route
+                })
             });
-            if (response.ok) {
-                toast({ title: 'Success', description: 'Emergency case registered' });
-                setShowNewModal(false);
-                setNewCase({ patientId: '', triageColor: 'YELLOW', medicoLegalFlag: false, triageNotes: '' });
-                fetchEmergency();
-            } else {
-                const err = await response.json();
-                toast({ title: 'Error', description: err.error || 'Failed', variant: 'destructive' });
+            if (res.ok) {
+                toast({ title: 'Order Placed', description: `STAT ${medName} ordered.` });
+                setShowMedsModal(false);
             }
-        } catch (error) {
-            toast({ title: 'Error', description: 'Failed to register emergency', variant: 'destructive' });
-        } finally {
-            setSaving(false);
-        }
+        } catch { }
+        finally { setProcessing(false); }
     };
 
-    const handleUpdateTriage = async (encounterId: string, triageColor: string) => {
+    const handleNewArrival = async () => {
+        setProcessing(true);
         try {
-            const response = await fetch(`/api/encounters/${encounterId}`, {
-                method: 'PUT',
+            const res = await fetch('/api/emergency?action=new-arrival', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ triageColor }),
+                body: JSON.stringify({
+                    ...newPatient,
+                    mlcDetails: newPatient.isMLC ? { type: newPatient.mlcType, policeStation: newPatient.policeStation } : null
+                })
             });
-            if (response.ok) {
-                toast({ title: 'Success', description: 'Triage updated' });
-                setSelectedEncounter(null);
-                fetchEmergency();
+            if (res.ok) {
+                toast({ title: 'Registered', description: 'New patient registered successfully.' });
+                setShowArrivalModal(false);
+                fetchPatients();
             }
-        } catch (error) {
-            toast({ title: 'Error', description: 'Failed to update', variant: 'destructive' });
-        }
+        } catch { }
+        finally { setProcessing(false); }
     };
-
-    const handleDischarge = async (encounterId: string) => {
-        try {
-            const response = await fetch(`/api/encounters/${encounterId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'DISCHARGED', dischargeTime: new Date().toISOString() }),
-            });
-            if (response.ok) {
-                toast({ title: 'Success', description: 'Patient discharged' });
-                setSelectedEncounter(null);
-                fetchEmergency();
-            }
-        } catch (error) {
-            toast({ title: 'Error', description: 'Failed to discharge', variant: 'destructive' });
-        }
-    };
-
-    const getTriageColorClass = (color: string | null) => {
-        switch (color) {
-            case 'RED': return 'bg-status-critical';
-            case 'ORANGE': return 'bg-orange-500';
-            case 'YELLOW': return 'bg-status-warning';
-            case 'GREEN': return 'bg-status-success';
-            default: return 'bg-gray-400';
-        }
-    };
-
-    const getTriageLabel = (color: string | null) => {
-        switch (color) { case 'RED': return 'Immediate'; case 'ORANGE': return 'Urgent'; case 'YELLOW': return 'Delayed'; case 'GREEN': return 'Minor'; default: return 'Untriaged'; }
-    };
-
-    const getWaitTime = (arrivalTime: string) => {
-        const diff = Date.now() - new Date(arrivalTime).getTime();
-        const mins = Math.floor(diff / 60000);
-        if (mins < 60) return `${mins}m`;
-        return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-    };
-
-    if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><Ambulance className="w-6 h-6 text-status-critical" />Emergency Department</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Live emergency board - Auto-refreshes every 30 seconds</p>
+        <div className="p-6 space-y-6 animate-fade-in pb-20">
+            {/* Header & Stats */}
+            <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <h1 className="text-2xl font-bold flex items-center gap-2 text-destructive">
+                        <AlertCircle className="w-8 h-8" /> Emergency Track
+                    </h1>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={fetchPatients}><RefreshCw className="w-4 h-4 mr-2" /> Refresh</Button>
+                        <Button className="bg-destructive hover:bg-destructive/90" onClick={() => setShowArrivalModal(true)}><Plus className="w-4 h-4 mr-2" /> New Arrival</Button>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => fetchEmergency(true)} disabled={refreshing}><RefreshCw className={cn("w-4 h-4 mr-2", refreshing && "animate-spin")} />Refresh</Button>
-                    <Button size="sm" onClick={() => setShowNewModal(true)}><Plus className="w-4 h-4 mr-2" />New Emergency</Button>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="bg-blue-50/50 dark:bg-blue-900/20"><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Active Patients</p><p className="text-2xl font-bold">{stats.total}</p></div><Users className="w-8 h-8 text-blue-500 opacity-50" /></CardContent></Card>
+                    <Card className="bg-red-50/50 dark:bg-red-900/20"><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-destructive font-medium">Critical (Red)</p><p className="text-2xl font-bold text-destructive">{stats.critical}</p></div><Ambulance className="w-8 h-8 text-destructive opacity-50" /></CardContent></Card>
+                    <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Untriaged</p><p className="text-2xl font-bold">{stats.untriaged}</p></div><Stethoscope className="w-8 h-8 opacity-20" /></CardContent></Card>
+                    <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Avg Wait</p><p className="text-2xl font-bold">{stats.avgWaitMinutes}m</p></div><Clock className="w-8 h-8 opacity-20" /></CardContent></Card>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="kpi-card border-l-4 border-l-status-critical flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-status-critical/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-status-critical animate-pulse" /></div><div><p className="text-xs text-muted-foreground">Immediate (Red)</p><p className="text-lg font-bold text-status-critical">{stats.immediate}</p></div></div>
-                <div className="kpi-card border-l-4 border-l-orange-500 flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center"><Clock className="w-5 h-5 text-orange-500" /></div><div><p className="text-xs text-muted-foreground">Urgent (Orange)</p><p className="text-lg font-bold text-orange-500">{stats.urgent}</p></div></div>
-                <div className="kpi-card border-l-4 border-l-status-warning flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-status-warning/10 flex items-center justify-center"><Users className="w-5 h-5 text-status-warning" /></div><div><p className="text-xs text-muted-foreground">Delayed (Yellow)</p><p className="text-lg font-bold text-status-warning">{stats.delayed}</p></div></div>
-                <div className="kpi-card border-l-4 border-l-status-success flex items-center gap-4"><div className="w-10 h-10 rounded-xl bg-status-success/10 flex items-center justify-center"><Users className="w-5 h-5 text-status-success" /></div><div><p className="text-xs text-muted-foreground">Minor (Green)</p><p className="text-lg font-bold text-status-success">{stats.minor}</p></div></div>
-            </div>
-
-            <div className="floating-card">
-                <h3 className="font-semibold mb-4">Active Emergency Cases ({encounters.length})</h3>
-                {encounters.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">No active emergency cases</p>
+            {/* Dashboard Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {patients.length === 0 ? (
+                    <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed rounded-xl">No active emergency patients.</div>
                 ) : (
-                    <div className="space-y-3">
-                        {encounters.sort((a, b) => { const order = { RED: 0, ORANGE: 1, YELLOW: 2, GREEN: 3 }; return (order[a.triageColor as keyof typeof order] ?? 4) - (order[b.triageColor as keyof typeof order] ?? 4); }).map((encounter) => (
-                            <div key={encounter.id} onClick={() => setSelectedEncounter(encounter)} className={cn("flex items-center justify-between p-4 bg-muted/30 rounded-xl border-l-4 cursor-pointer hover:bg-muted/50 transition-colors", encounter.triageColor === 'RED' && "border-l-status-critical bg-status-critical/5", encounter.triageColor === 'ORANGE' && "border-l-orange-500 bg-orange-500/5", encounter.triageColor === 'YELLOW' && "border-l-status-warning", encounter.triageColor === 'GREEN' && "border-l-status-success", !encounter.triageColor && "border-l-gray-400")}>
-                                <div className="flex items-center gap-4">
-                                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white font-bold", getTriageColorClass(encounter.triageColor))}>{encounter.triageColor?.charAt(0) || '?'}</div>
-                                    <div>
-                                        <div className="flex items-center gap-2"><p className="font-medium">{encounter.patient.name}</p><span className="text-xs text-muted-foreground">{encounter.patient.uhid}</span>{encounter.medicoLegalFlag && <span className="px-1.5 py-0.5 text-xs bg-status-critical/10 text-status-critical rounded">MLC</span>}</div>
-                                        <p className="text-xs text-muted-foreground">{getTriageLabel(encounter.triageColor)} • {encounter.bedAssignments[0]?.bed.bedNumber || encounter.currentLocation || 'Waiting Area'}</p>
+                    patients.map(patient => (
+                        <Card key={patient.id} className={cn("border-l-8 hover:shadow-md transition-all", getTriageColor(patient.triageColor))}>
+                            <CardHeader className="pb-2 p-4">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center font-bold text-lg shadow-sm border">
+                                            {patient.patient.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-base truncate max-w-[120px]" title={patient.patient.name}>{patient.patient.name}</CardTitle>
+                                            <p className="text-xs font-mono opacity-80">{patient.patient.uhid}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <Badge variant="outline" className="bg-background/80backdrop-blur mb-1 block shadow-sm border-0 font-bold">
+                                            {patient.triageColor || 'NONE'}
+                                        </Badge>
+                                        <span className="text-xs font-bold flex items-center justify-end gap-1">
+                                            <Clock className="w-3 h-3" /> {getWaitTime(patient.arrivalTime)}
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="text-right"><p className="text-sm font-medium flex items-center gap-1"><Clock className="w-3 h-3" />{getWaitTime(encounter.arrivalTime)}</p><p className="text-xs text-muted-foreground capitalize">{encounter.status.toLowerCase()}</p></div>
-                            </div>
-                        ))}
-                    </div>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0 pb-2">
+                                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                    <div className="bg-background/40 p-1.5 rounded border border-transparent hover:border-border/50 transition-colors">
+                                        <span className="text-[10px] uppercase tracking-wider opacity-70 block">BP / Pulse</span>
+                                        <span className="font-semibold">{patient.vitalSigns[0]?.bpSystolic || '-'}/{patient.vitalSigns[0]?.bpDiastolic || '-'} <span className="text-xs text-muted-foreground">/ {patient.vitalSigns[0]?.pulse || '-'}</span></span>
+                                    </div>
+                                    <div className="bg-background/40 p-1.5 rounded border border-transparent hover:border-border/50 transition-colors">
+                                        <span className="text-[10px] uppercase tracking-wider opacity-70 block">SpO2</span>
+                                        <span className={cn("font-semibold", (patient.vitalSigns[0]?.spO2 || 100) < 95 ? "text-destructive animate-pulse" : "")}>
+                                            {patient.vitalSigns[0]?.spO2 || '-'}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="p-2 bg-background/30 flex gap-2">
+                                <Button size="sm" className="flex-1 h-8 text-xs bg-white text-black hover:bg-slate-100 border shadow-sm" onClick={() => handleCallDoctor(patient)}>
+                                    <Megaphone className="w-3 h-3 mr-1.5 text-blue-600" /> Doc
+                                </Button>
+                                <Button size="sm" className="flex-1 h-8 text-xs bg-white text-black hover:bg-slate-100 border shadow-sm" onClick={() => { setSelectedPatient(patient); setShowMedsModal(true); }}>
+                                    <Pill className="w-3 h-3 mr-1.5 text-red-600" /> Meds
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))
                 )}
             </div>
 
-            {/* New Emergency Modal */}
-            {showNewModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-xl max-w-md w-full p-6">
-                        <div className="flex items-center justify-between mb-4"><h2 className="text-lg font-semibold">New Emergency Case</h2><Button variant="ghost" size="sm" onClick={() => setShowNewModal(false)}><X className="w-4 h-4" /></Button></div>
-                        <div className="space-y-4">
-                            <div><Label>Patient *</Label><select className="elegant-select" value={newCase.patientId} onChange={(e) => setNewCase(c => ({ ...c, patientId: e.target.value }))}><option value="">Select patient</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name} ({p.uhid})</option>)}</select></div>
-                            <div><Label>Triage Color *</Label><div className="grid grid-cols-4 gap-2 mt-1">{['RED', 'ORANGE', 'YELLOW', 'GREEN'].map(color => (<button key={color} onClick={() => setNewCase(c => ({ ...c, triageColor: color }))} className={cn("p-2 rounded-lg border-2 text-xs font-bold transition-all", newCase.triageColor === color ? 'ring-2 ring-offset-2' : '', color === 'RED' ? 'bg-status-critical/20 border-status-critical text-status-critical' : '', color === 'ORANGE' ? 'bg-orange-500/20 border-orange-500 text-orange-600' : '', color === 'YELLOW' ? 'bg-status-warning/20 border-status-warning text-status-warning' : '', color === 'GREEN' ? 'bg-status-success/20 border-status-success text-status-success' : '')}>{color}</button>))}</div></div>
-                            <div><Label>Triage Notes</Label><Input placeholder="Chief complaint, observations..." value={newCase.triageNotes} onChange={(e) => setNewCase(c => ({ ...c, triageNotes: e.target.value }))} /></div>
-                            <div className="flex items-center gap-2"><input type="checkbox" id="mlc" checked={newCase.medicoLegalFlag} onChange={(e) => setNewCase(c => ({ ...c, medicoLegalFlag: e.target.checked }))} /><Label htmlFor="mlc" className="cursor-pointer">Medico-Legal Case (MLC)</Label></div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-6"><Button variant="outline" onClick={() => setShowNewModal(false)}>Cancel</Button><Button onClick={handleNewEmergency} disabled={saving}>{saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Register</Button></div>
-                    </div>
-                </div>
-            )}
+            {/* Quick Meds Modal */}
+            <Dialog open={showMedsModal} onOpenChange={setShowMedsModal}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>STAT Medication</DialogTitle>
+                        <DialogDescription>1-Click order for {selectedPatient?.patient.name}</DialogDescription>
+                    </DialogHeader>
+                    <Tabs defaultValue="quick">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="quick">Quick Order</TabsTrigger>
+                            <TabsTrigger value="custom">Custom</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="quick" className="space-y-2 mt-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                {EMERGENCY_MEDS.map(med => (
+                                    <Button key={med.id} variant="outline" className="h-auto py-3 justify-start flex-col items-start gap-1 hover:border-primary/50" onClick={() => handleOrderMeds(med.name, med.dose, med.route)} disabled={processing}>
+                                        <span className="font-bold flex items-center w-full justify-between">
+                                            {med.name}
+                                            <Badge variant="secondary" className="text-[10px] bg-primary/10">{med.route}</Badge>
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">{med.dose}</span>
+                                    </Button>
+                                ))}
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="custom" className="space-y-4 mt-4">
+                            <div className="space-y-2">
+                                <Label>Medication Name</Label>
+                                <Input placeholder="e.g. Furosemide" value={customMed.name} onChange={e => setCustomMed({ ...customMed, name: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Dose</Label>
+                                    <Input placeholder="e.g. 40mg" value={customMed.dose} onChange={e => setCustomMed({ ...customMed, dose: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Route</Label>
+                                    <Select value={customMed.route} onValueChange={v => setCustomMed({ ...customMed, route: v })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="IV">IV</SelectItem>
+                                            <SelectItem value="IM">IM</SelectItem>
+                                            <SelectItem value="PO">PO</SelectItem>
+                                            <SelectItem value="SL">SL</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <Button className="w-full" onClick={() => handleOrderMeds(customMed.name, customMed.dose, customMed.route)} disabled={!customMed.name || processing}>Place Order</Button>
+                        </TabsContent>
+                    </Tabs>
+                </DialogContent>
+            </Dialog>
 
-            {/* Case Detail Modal */}
-            {selectedEncounter && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-xl max-w-md w-full p-6">
-                        <div className="flex items-center justify-between mb-4"><h2 className="text-lg font-semibold">Case Details</h2><Button variant="ghost" size="sm" onClick={() => setSelectedEncounter(null)}><X className="w-4 h-4" /></Button></div>
-                        <div className="space-y-3 mb-4">
-                            <div className="flex justify-between"><span className="text-muted-foreground">Patient</span><span className="font-medium">{selectedEncounter.patient.name}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">UHID</span><span>{selectedEncounter.patient.uhid}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Wait Time</span><span>{getWaitTime(selectedEncounter.arrivalTime)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Location</span><span>{selectedEncounter.bedAssignments[0]?.bed.bedNumber || 'Waiting Area'}</span></div>
+            {/* New Arrival Modal */}
+            <Dialog open={showArrivalModal} onOpenChange={setShowArrivalModal}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>New Emergency Arrival</DialogTitle>
+                        <DialogDescription>Quick Registration & Triage</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-6 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2"><Label>Full Name</Label><Input placeholder="John Doe" value={newPatient.name} onChange={e => setNewPatient({ ...newPatient, name: e.target.value })} /></div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-2"><Label>Age</Label><Input type="number" placeholder="35" value={newPatient.age} onChange={e => setNewPatient({ ...newPatient, age: e.target.value })} /></div>
+                                <div className="space-y-2"><Label>Gender</Label>
+                                    <Select value={newPatient.gender} onValueChange={v => setNewPatient({ ...newPatient, gender: v })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Male">Male</SelectItem>
+                                            <SelectItem value="Female">Female</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
-                        <div className="mb-4"><Label className="text-sm mb-2 block">Change Triage</Label><div className="grid grid-cols-4 gap-2">{['RED', 'ORANGE', 'YELLOW', 'GREEN'].map(color => (<button key={color} onClick={() => handleUpdateTriage(selectedEncounter.id, color)} className={cn("p-2 rounded-lg border text-xs font-bold", color === 'RED' ? 'bg-status-critical/20 border-status-critical text-status-critical' : '', color === 'ORANGE' ? 'bg-orange-500/20 border-orange-500 text-orange-600' : '', color === 'YELLOW' ? 'bg-status-warning/20 border-status-warning text-status-warning' : '', color === 'GREEN' ? 'bg-status-success/20 border-status-success text-status-success' : '')}>{color}</button>))}</div></div>
-                        <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setSelectedEncounter(null)}>Close</Button><Button variant="destructive" onClick={() => handleDischarge(selectedEncounter.id)}>Discharge</Button></div>
+
+                        <div className="space-y-2"><Label>Presenting Complaint</Label><Textarea placeholder="e.g. Chest pain, RTA..." value={newPatient.complaint} onChange={e => setNewPatient({ ...newPatient, complaint: e.target.value })} /></div>
+
+                        <div className="space-y-2">
+                            <Label>Initial Triage</Label>
+                            <div className="flex gap-2">
+                                {['RED', 'ORANGE', 'YELLOW', 'GREEN'].map(c => (
+                                    <div key={c} className={cn("flex-1 p-3 rounded-lg border-2 cursor-pointer text-center font-bold text-sm transition-all",
+                                        newPatient.triageColor === c ? "border-black scale-105 shadow-md" : "border-transparent opacity-60 hover:opacity-100",
+                                        c === 'RED' ? 'bg-red-200 text-red-900' : c === 'ORANGE' ? 'bg-orange-200 text-orange-900' : c === 'YELLOW' ? 'bg-yellow-200 text-yellow-900' : 'bg-green-200 text-green-900'
+                                    )} onClick={() => setNewPatient({ ...newPatient, triageColor: c })}>
+                                        {c}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 border rounded-lg p-3 bg-muted/20">
+                            <Label className="mb-2 block">Vitals (Optional)</Label>
+                            <div className="grid grid-cols-5 gap-2">
+                                <div><Input placeholder="Sys" value={newPatient.bpSystolic} onChange={e => setNewPatient({ ...newPatient, bpSystolic: e.target.value })} /><span className="text-[10px] text-muted-foreground">BP Sys</span></div>
+                                <div><Input placeholder="Dia" value={newPatient.bpDiastolic} onChange={e => setNewPatient({ ...newPatient, bpDiastolic: e.target.value })} /><span className="text-[10px] text-muted-foreground">BP Dia</span></div>
+                                <div><Input placeholder="Pulse" value={newPatient.pulse} onChange={e => setNewPatient({ ...newPatient, pulse: e.target.value })} /><span className="text-[10px] text-muted-foreground">Pulse</span></div>
+                                <div><Input placeholder="SpO2" value={newPatient.spO2} onChange={e => setNewPatient({ ...newPatient, spO2: e.target.value })} /><span className="text-[10px] text-muted-foreground">SpO2</span></div>
+                                <div><Input placeholder="Temp" value={newPatient.temp} onChange={e => setNewPatient({ ...newPatient, temp: e.target.value })} /><span className="text-[10px] text-muted-foreground">Temp</span></div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 border p-3 rounded-md bg-destructive/5 border-destructive/20">
+                            <Checkbox id="mlc" checked={newPatient.isMLC} onCheckedChange={(c) => setNewPatient({ ...newPatient, isMLC: c as boolean })} />
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor="mlc" className="text-destructive font-bold">Medico-Legal Case (MLC)</Label>
+                                <p className="text-sm text-muted-foreground">Check if this is an accident or police case.</p>
+                            </div>
+                        </div>
+
+                        {newPatient.isMLC && (
+                            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                                <div className="space-y-2"><Label>Type</Label>
+                                    <Select value={newPatient.mlcType} onValueChange={v => setNewPatient({ ...newPatient, mlcType: v })}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent><SelectItem value="Accident">Accident</SelectItem><SelectItem value="Assault">Assault</SelectItem><SelectItem value="Poisoning">Poisoning</SelectItem></SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2"><Label>Police Station</Label><Input placeholder="Station Name" value={newPatient.policeStation} onChange={e => setNewPatient({ ...newPatient, policeStation: e.target.value })} /></div>
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowArrivalModal(false)}>Cancel</Button>
+                        <Button className="bg-destructive hover:bg-destructive/90" onClick={handleNewArrival} disabled={!newPatient.name || !newPatient.age || processing}>Register</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

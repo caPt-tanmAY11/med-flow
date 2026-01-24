@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
                 bedAssignments: { where: { endTime: null }, include: { bed: true } },
                 vitalSigns: { orderBy: { recordedAt: 'desc' }, take: 1 },
                 clinicalNotes: { orderBy: { createdAt: 'desc' }, take: 3, where: { authorRole: 'Doctor' } },
+                prescriptions: { where: { status: 'active' }, include: { medications: true } },
+                orders: { where: { orderType: 'LAB', status: 'completed' }, include: { labResult: true } },
             },
         });
 
@@ -207,6 +209,20 @@ export async function POST(request: NextRequest) {
             });
 
             return NextResponse.json({ data: handover }, { status: 201 });
+        }
+
+        // Toggle Duty Status (Admin)
+        if (action === 'toggle-duty') {
+            const { nurseId, isActive } = body;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            await prisma.nurseDuty.updateMany({
+                where: { nurseId, shiftDate: { gte: today } },
+                data: { isActive },
+            });
+
+            return NextResponse.json({ message: `Duty status updated` });
         }
 
         // Administer medication
