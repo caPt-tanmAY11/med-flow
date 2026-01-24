@@ -36,13 +36,30 @@ export interface NavGroup {
 
 export const navigationConfig: NavGroup[] = [
     {
+        title: 'Patient Portal',
+        items: [
+             {
+                title: 'My Health',
+                href: '/patient/dashboard',
+                icon: Heart,
+                roles: ['PATIENT'],
+            },
+            {
+                title: 'My Admission',
+                href: '/patient/ipd',
+                icon: Bed,
+                roles: ['PATIENT'],
+            },
+        ]
+    },
+    {
         title: 'Overview',
         items: [
             {
                 title: 'Dashboard',
                 href: '/dashboard',
                 icon: LayoutDashboard,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'LAB_PERSON', 'PHARMACIST', 'BILLING', 'MANAGEMENT', 'NURSING_ADMIN', 'PATIENT'],
+                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'LAB_PERSON', 'PHARMACIST', 'BILLING', 'MANAGEMENT', 'NURSING_ADMIN'],
             },
         ],
     },
@@ -65,7 +82,7 @@ export const navigationConfig: NavGroup[] = [
                 title: 'OPD Queue',
                 href: '/opd',
                 icon: Users,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN', 'PATIENT'],
+                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN'],
             },
         ],
     },
