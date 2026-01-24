@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { addBillItem, getMedicationPrice } from '@/lib/billing-utils';
 
 const dispenseSchema = z.object({
     medicationId: z.string().uuid(),
@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
             where: { id: data.medicationId },
             include: {
                 prescription: {
-                    include: { patient: true },
+                    include: {
+                        patient: true,
+                        encounter: true,
+                    },
                 },
             },
         });
@@ -37,6 +40,26 @@ export async function POST(request: NextRequest) {
             where: { id: data.medicationId },
             data: { isDispensed: true },
         });
+
+        // AUTO-BILLING: Add medication charge to patient's bill
+        try {
+            const medicationPrice = await getMedicationPrice(medication.medicationName);
+            const quantity = medication.quantity || data.quantity || 1;
+
+            await addBillItem({
+                encounterId: medication.prescription.encounterId,
+                patientId: medication.prescription.patientId,
+                category: 'pharmacy',
+                department: 'PHARMACY',
+                itemCode: `MED-${medication.id.substring(0, 8)}`,
+                description: `${medication.medicationName} - ${medication.dosage} x ${quantity}`,
+                quantity: quantity,
+                unitPrice: medicationPrice,
+            });
+        } catch (billingError) {
+            console.error('Auto-billing error (non-fatal):', billingError);
+            // Continue even if billing fails
+        }
 
         // Check if all medications are dispensed
         const pendingMeds = await prisma.prescriptionMedication.count({
@@ -85,3 +108,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to dispense' }, { status: 500 });
     }
 }
+

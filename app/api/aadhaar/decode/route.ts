@@ -13,7 +13,7 @@ export async function POST(req: Request) {
         // Execute Python script to decode
         const scriptPath = path.join(process.cwd(), "lib", "decode_aadhaar.py");
 
-        return new Promise((resolve) => {
+        return new Promise<NextResponse>((resolve) => {
             const pythonProcess = spawn("python3", [scriptPath]);
 
             let outputData = "";

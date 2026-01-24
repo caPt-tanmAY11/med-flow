@@ -897,9 +897,11 @@ model BillItem {
   unitPrice   Float
   totalPrice  Float
   tariffId    String?
+  department  String? // Track which department generated this revenue (LABORATORY, PHARMACY, CARDIOLOGY, etc.)
   bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
 
   @@index([billId])
+  @@index([department])
 }
 
 model TariffMaster {
