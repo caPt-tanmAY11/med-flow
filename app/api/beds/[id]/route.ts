@@ -77,9 +77,22 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         if (status) {
             updateData.status = status;
             // If marking as available after cleaning, update cleaned timestamp
-            if (status === 'AVAILABLE' && existingBed.status === 'CLEANING') {
-                updateData.lastCleanedAt = new Date();
-                updateData.lastCleanedBy = lastCleanedBy || 'system';
+            if (status === 'AVAILABLE') {
+                 if (existingBed.status === 'CLEANING') {
+                    updateData.lastCleanedAt = new Date();
+                    updateData.lastCleanedBy = lastCleanedBy || 'system';
+                 }
+                 
+                 // If the bed is being marked available (e.g. from Discharged/Occupied), close any active assignments
+                 await prisma.bedAssignment.updateMany({
+                    where: {
+                        bedId: id,
+                        endTime: null
+                    },
+                    data: {
+                        endTime: new Date()
+                    }
+                 });
             }
         }
 
