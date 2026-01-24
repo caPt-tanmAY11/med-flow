@@ -36,8 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+/venv
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
 /lib/generated/prisma
+industrial-cat-485320-h3-007121c04b6c.json
