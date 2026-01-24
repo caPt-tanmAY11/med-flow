@@ -278,8 +278,8 @@ async function main() {
         // Only create bill items if this is a new bill (check by items count)
         const existingItems = await prisma.billItem.count({ where: { billId: bill.id } });
         if (existingItems === 0) {
-            await prisma.billItem.create({ data: { billId: bill.id, category: 'consultation', department: 'CONSULTATION', description: 'Consultation Fee', quantity: 1, unitPrice: 1000, totalPrice: 1000 } });
-            await prisma.billItem.create({ data: { billId: bill.id, category: 'bed', department: 'WARD_SERVICES', description: 'Bed Charges (2 days)', quantity: 2, unitPrice: 1500, totalPrice: 3000 } });
+            await prisma.billItem.create({ data: { billId: bill.id, category: 'consultation', description: 'Consultation Fee', quantity: 1, unitPrice: 1000, totalPrice: 1000 } });
+            await prisma.billItem.create({ data: { billId: bill.id, category: 'bed', description: 'Bed Charges (2 days)', quantity: 2, unitPrice: 1500, totalPrice: 3000 } });
         }
         if (paidAmount > 0) {
             const existingPayment = await prisma.payment.findFirst({ where: { billId: bill.id } });
@@ -382,10 +382,13 @@ async function main() {
 
             const paidAmount = billNum % 3 === 0 ? subtotal : billNum % 3 === 1 ? subtotal * 0.5 : 0;
 
+            const encounter = createdEncounters.find(e => e.patientId === patient.id) || createdEncounters[0];
+
             const bill = await prisma.bill.create({
                 data: {
                     billNumber,
                     patientId: patient.id,
+                    encounterId: encounter.id,
                     status: paidAmount === subtotal ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
                     subtotal,
                     totalAmount: subtotal,
@@ -399,7 +402,6 @@ async function main() {
                     data: {
                         billId: bill.id,
                         category: 'service',
-                        department: dept,
                         description: item.desc,
                         quantity: 1,
                         unitPrice: item.price,
