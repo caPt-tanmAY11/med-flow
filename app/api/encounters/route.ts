@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         const type = searchParams.get('type');
         const department = searchParams.get('department');
         const triageColor = searchParams.get('triageColor');
+        const doctorId = searchParams.get('doctorId');
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '20');
         const skip = (page - 1) * limit;
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
         if (type) where.type = type as 'OPD' | 'IPD' | 'EMERGENCY';
         if (department) where.department = { contains: department, mode: 'insensitive' };
         if (triageColor) where.triageColor = triageColor as 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN';
+        if (doctorId) where.primaryDoctorId = doctorId;
 
         const [encounters, total] = await Promise.all([
             prisma.encounter.findMany({

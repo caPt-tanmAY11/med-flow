@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserPlus, Users, FileText, Phone, MapPin, AlertCircle, Loader2, CheckCircle, AlertTriangle, QrCode, Stethoscope, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,12 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import QRScanner from '@/components/QRScanner';
 import { AadhaarQRData, getAadhaarLast4 } from '@/lib/aadhaar-qr';
+
+interface Doctor {
+    id: string;
+    name: string;
+    email: string;
+}
 
 interface FormData {
     firstName: string;
@@ -33,6 +39,7 @@ interface FormData {
     visitType: string;
     department: string;
     priority: string;
+    referredDoctor: string;
 }
 
 export default function RegistrationPage() {
@@ -41,6 +48,24 @@ export default function RegistrationPage() {
     const [duplicates, setDuplicates] = useState<{ id: string; uhid: string; name: string; similarity: string }[]>([]);
     const [registeredPatient, setRegisteredPatient] = useState<{ uhid: string; name: string } | null>(null);
     const [showIdCapture, setShowIdCapture] = useState(false);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [loadingDoctors, setLoadingDoctors] = useState(true);
+
+    // Fetch doctors on component mount
+    useEffect(() => {
+        const fetchDoctors = async () => {
+            try {
+                const response = await fetch('/api/doctors');
+                const result = await response.json();
+                setDoctors(result.data || []);
+            } catch (error) {
+                console.error('Failed to fetch doctors:', error);
+            } finally {
+                setLoadingDoctors(false);
+            }
+        };
+        fetchDoctors();
+    }, []);
 
     const [formData, setFormData] = useState<FormData>({
         firstName: '',
@@ -65,6 +90,7 @@ export default function RegistrationPage() {
         visitType: 'OPD',
         department: 'General Medicine',
         priority: 'GREEN',
+        referredDoctor: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -137,6 +163,7 @@ export default function RegistrationPage() {
                     patientId: result.data.id,
                     type: formData.visitType,
                     department: formData.department,
+                    primaryDoctorId: formData.referredDoctor || undefined,
                     triageColor: formData.visitType === 'EMERGENCY' ? formData.priority : undefined,
                 }),
             });
@@ -162,7 +189,7 @@ export default function RegistrationPage() {
                 phone: '', email: '', emergency: '', emergencyName: '', emergencyRelation: '',
                 address: '', city: '', state: '', pincode: '', idType: '', idNumber: '',
                 allergies: '', conditions: '', isTemporary: false,
-                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN',
+                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN', referredDoctor: '',
             });
 
         } catch (error) {
@@ -426,6 +453,27 @@ export default function RegistrationPage() {
                                     <option value="Gynecology">Gynecology</option>
                                     <option value="Dermatology">Dermatology</option>
                                     <option value="ENT">ENT</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label htmlFor="referredDoctor">Referred Doctor *</Label>
+                                <select
+                                    id="referredDoctor"
+                                    value={formData.referredDoctor}
+                                    onChange={handleChange}
+                                    className="elegant-select mt-1"
+                                    required
+                                >
+                                    <option value="">Select a doctor</option>
+                                    {loadingDoctors ? (
+                                        <option disabled>Loading doctors...</option>
+                                    ) : (
+                                        doctors.map(doctor => (
+                                            <option key={doctor.id} value={doctor.id}>
+                                                {doctor.name}
+                                            </option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                             {formData.visitType === 'EMERGENCY' && (

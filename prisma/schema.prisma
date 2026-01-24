@@ -1374,3 +1374,24 @@ model NurseVerification {
   @@index([verifiedAt])
   @@index([shiftDate])
 }
+
+// Notification model for persistent notifications
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String    // User who should receive this notification
+  title       String
+  message     String
+  type        String    @default("info") // info, success, warning, critical
+  link        String?   // Optional link to navigate to
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  
+  // Reference fields for context
+  encounterId String?
+  patientId   String?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}

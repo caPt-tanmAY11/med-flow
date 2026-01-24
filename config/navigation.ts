@@ -65,7 +65,7 @@ export const navigationConfig: NavGroup[] = [
                 title: 'OPD Queue',
                 href: '/opd',
                 icon: Users,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN'],
+                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN', 'PATIENT'],
             },
         ],
     },
