@@ -28,6 +28,9 @@ const DOCTORS = [
     { id: 'dr-patel', name: 'Dr. Patel', specialty: 'Orthopedics' },
     { id: 'dr-gupta', name: 'Dr. Gupta', specialty: 'Pediatrics' },
     { id: 'dr-singh', name: 'Dr. Singh', specialty: 'Cardiology' },
+    { id: 'dr-verma', name: 'Dr. Verma', specialty: 'Gynecology' },
+    { id: 'dr-khan', name: 'Dr. Khan', specialty: 'Dermatology' },
+    { id: 'dr-reddy', name: 'Dr. Reddy', specialty: 'ENT' },
 ];
 
 const ROOMS = ['Room 101', 'Room 102', 'Room 103', 'Room 201', 'Room 202'];
@@ -47,6 +50,7 @@ export default function OPDPage() {
     const [visits, setVisits] = useState<Encounter[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
     const { toast } = useToast();
 
     const fetchVisits = useCallback(async () => {
@@ -107,8 +111,15 @@ export default function OPDPage() {
         updateEncounter(id, { status: 'DISCHARGED' });
     };
 
-    const waitingCount = visits.filter(v => !v.consultationStart).length;
-    const inConsultCount = visits.filter(v => v.consultationStart).length;
+    // Filter visits by selected doctor
+    const filteredVisits = selectedDoctor === 'all'
+        ? visits
+        : selectedDoctor === 'unassigned'
+            ? visits.filter(v => !v.primaryDoctorId)
+            : visits.filter(v => v.primaryDoctorId === selectedDoctor);
+
+    const waitingCount = filteredVisits.filter(v => !v.consultationStart).length;
+    const inConsultCount = filteredVisits.filter(v => v.consultationStart).length;
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -122,9 +133,22 @@ export default function OPDPage() {
                         Real-time outpatient queue with resource assignment
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => fetchVisits()} className="gap-2">
-                    <RefreshCw className="w-4 h-4" /> Refresh
-                </Button>
+                <div className="flex gap-2 items-center">
+                    <select
+                        value={selectedDoctor}
+                        onChange={(e) => setSelectedDoctor(e.target.value)}
+                        className="text-sm border rounded-lg px-3 py-2 bg-background"
+                    >
+                        <option value="all">All Doctors</option>
+                        {DOCTORS.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                        <option value="unassigned">Unassigned</option>
+                    </select>
+                    <Button variant="outline" size="sm" onClick={() => fetchVisits()} className="gap-2">
+                        <RefreshCw className="w-4 h-4" /> Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* KPI Cards */}
@@ -175,8 +199,13 @@ export default function OPDPage() {
 
                 {loading ? (
                     <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-                ) : visits.length === 0 ? (
-                    <p className="text-center text-muted-foreground p-8">No active OPD visits. Register a patient to begin.</p>
+                ) : filteredVisits.length === 0 ? (
+                    <p className="text-center text-muted-foreground p-8">
+                        {selectedDoctor === 'all'
+                            ? 'No active OPD visits. Register a patient to begin.'
+                            : `No patients in queue for ${selectedDoctor === 'unassigned' ? 'unassigned' : DOCTORS.find(d => d.id === selectedDoctor)?.name || selectedDoctor}`
+                        }
+                    </p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -193,7 +222,7 @@ export default function OPDPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {visits.map((visit, index) => (
+                                {filteredVisits.map((visit, index) => (
                                     <tr key={visit.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                                         <td className="p-3">
                                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">

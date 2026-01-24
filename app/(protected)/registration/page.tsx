@@ -33,6 +33,7 @@ interface FormData {
     visitType: string;
     department: string;
     priority: string;
+    doctorReferred: string;
 }
 
 export default function RegistrationPage() {
@@ -65,6 +66,7 @@ export default function RegistrationPage() {
         visitType: 'OPD',
         department: 'General Medicine',
         priority: 'GREEN',
+        doctorReferred: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -137,6 +139,7 @@ export default function RegistrationPage() {
                     patientId: result.data.id,
                     type: formData.visitType,
                     department: formData.department,
+                    primaryDoctorId: formData.doctorReferred || undefined,
                     triageColor: formData.visitType === 'EMERGENCY' ? formData.priority : undefined,
                 }),
             });
@@ -162,7 +165,7 @@ export default function RegistrationPage() {
                 phone: '', email: '', emergency: '', emergencyName: '', emergencyRelation: '',
                 address: '', city: '', state: '', pincode: '', idType: '', idNumber: '',
                 allergies: '', conditions: '', isTemporary: false,
-                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN',
+                visitType: 'OPD', department: 'General Medicine', priority: 'GREEN', doctorReferred: '',
             });
 
         } catch (error) {
@@ -426,6 +429,19 @@ export default function RegistrationPage() {
                                     <option value="Gynecology">Gynecology</option>
                                     <option value="Dermatology">Dermatology</option>
                                     <option value="ENT">ENT</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label htmlFor="doctorReferred">Referred Doctor</Label>
+                                <select id="doctorReferred" value={formData.doctorReferred} onChange={handleChange} className="elegant-select mt-1">
+                                    <option value="">-- Select Doctor (Optional) --</option>
+                                    <option value="dr-sharma">Dr. Sharma (General Medicine)</option>
+                                    <option value="dr-patel">Dr. Patel (Orthopedics)</option>
+                                    <option value="dr-gupta">Dr. Gupta (Pediatrics)</option>
+                                    <option value="dr-singh">Dr. Singh (Cardiology)</option>
+                                    <option value="dr-verma">Dr. Verma (Gynecology)</option>
+                                    <option value="dr-khan">Dr. Khan (Dermatology)</option>
+                                    <option value="dr-reddy">Dr. Reddy (ENT)</option>
                                 </select>
                             </div>
                             {formData.visitType === 'EMERGENCY' && (
