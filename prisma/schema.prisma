@@ -1300,10 +1300,14 @@ enum SyncStatus {
 enum ROLE {
   DOCTOR
   NURSE
+  FRONT_DESK
+  PHARMACIST
   LAB_PERSON
   ADMIN
   NURSING_ADMIN
+  BILLING
   PATIENT
+  MANAGEMENT
 }
 
 // Nurse duty/shift tracking

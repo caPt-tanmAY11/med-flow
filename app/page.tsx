@@ -39,7 +39,7 @@ export default function LandingPage() {
           </button>
 
           <button
-            onClick={() => router.push('/auth/signin')}
+            onClick={() => router.push('/auth')}
             className="rounded-full px-4 py-2 bg-primary text-white"
           >
             Staff Login

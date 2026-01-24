@@ -17,6 +17,9 @@ const Sidebar: React.FC = () => {
 
     const navigation = getNavigationForRole(user.role);
 
+    console.log(user.role);
+    console.log(navigation);
+
     return (
         <aside className="w-72 bg-sidebar text-sidebar-foreground flex flex-col h-screen sticky top-0">
             {/* Logo Section */}

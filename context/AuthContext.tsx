@@ -1,88 +1,66 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useSession, signOut } from '@/lib/auth-client';
+import { useRouter } from 'next/navigation';
 
 export type UserRole =
-    | 'admin'
-    | 'doctor'
-    | 'nurse'
-    | 'front_desk'
-    | 'lab_technician'
-    | 'pharmacist'
-    | 'billing'
-    | 'management';
+    | 'ADMIN'
+    | 'DOCTOR'
+    | 'NURSE'
+    | 'FRONT_DESK'
+    | 'LAB_PERSON'
+    | 'PHARMACIST'
+    | 'BILLING'
+    | 'MANAGEMENT'
+    | 'NURSING_ADMIN'
+    | 'PATIENT';
 
 export interface User {
     id: string;
     name: string;
+    email: string;
     role: UserRole;
-    department?: string;
-    avatar?: string;
+    image?: string | null;
 }
 
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (role: UserRole, name?: string) => void;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const roleNames: Record<UserRole, string> = {
-    admin: 'Administrator',
-    doctor: 'Doctor',
-    nurse: 'Nurse',
-    front_desk: 'Front Desk',
-    lab_technician: 'Lab Technician',
-    pharmacist: 'Pharmacist',
-    billing: 'Billing & Insurance',
-    management: 'Management',
+export const roleNames: Record<UserRole, string> = {
+    ADMIN: 'Administrator',
+    DOCTOR: 'Doctor',
+    NURSE: 'Nurse',
+    FRONT_DESK: 'Front Desk',
+    LAB_PERSON: 'Lab Person',
+    PHARMACIST: 'Pharmacist',
+    BILLING: 'Billing & Insurance',
+    MANAGEMENT: 'Management',
+    NURSING_ADMIN: 'Nursing Admin',
+    PATIENT: 'Patient',
 };
 
-const AUTH_STORAGE_KEY = 'medflow_auth_user';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
+    const { data: session, isPending } = useSession();
 
-    // Load user from localStorage on mount
-    useEffect(() => {
-        try {
-            const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
-            }
-        } catch (error) {
-            console.error('Failed to load auth state:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    const user: User | null = session?.user ? {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        role: (session.user.role as UserRole) || 'PATIENT',
+        image: session.user.image,
+    } : null;
 
-    const login = (role: UserRole, name?: string) => {
-        const newUser: User = {
-            id: `user-${Date.now()}`,
-            name: name || roleNames[role],
-            role,
-            department: role === 'doctor' ? 'General Medicine' : undefined,
-        };
-        setUser(newUser);
-        try {
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-        } catch (error) {
-            console.error('Failed to save auth state:', error);
-        }
-    };
-
-    const logout = () => {
-        setUser(null);
-        try {
-            localStorage.removeItem(AUTH_STORAGE_KEY);
-        } catch (error) {
-            console.error('Failed to clear auth state:', error);
-        }
+    const logout = async () => {
+        await signOut();
+        router.push('/auth');
     };
 
     return (
@@ -90,8 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             value={{
                 user,
                 isAuthenticated: !!user,
-                isLoading,
-                login,
+                isLoading: isPending,
                 logout,
             }}
         >
@@ -107,5 +84,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-export { roleNames };
