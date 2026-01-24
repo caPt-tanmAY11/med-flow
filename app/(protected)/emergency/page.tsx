@@ -173,75 +173,171 @@ export default function EmergencyDashboard() {
     };
 
     return (
-        <div className="p-6 space-y-6 animate-fade-in pb-20">
+        <div className="p-6 space-y-8 animate-fade-in pb-20 max-w-[1600px] mx-auto font-inter">
             {/* Header & Stats */}
-            <div className="flex flex-col gap-4">
-                <div className="flex justify-between items-center">
-                    <h1 className="text-2xl font-bold flex items-center gap-2 text-destructive">
-                        <AlertCircle className="w-8 h-8" /> Emergency Track
-                    </h1>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={fetchPatients}><RefreshCw className="w-4 h-4 mr-2" /> Refresh</Button>
-                        <Button className="bg-destructive hover:bg-destructive/90" onClick={() => setShowArrivalModal(true)}><Plus className="w-4 h-4 mr-2" /> New Arrival</Button>
+            <div className="flex flex-col gap-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-200">
+                                <AlertCircle className="w-6 h-6 text-white" />
+                            </div>
+                            Emergency Department
+                        </h1>
+                        <p className="text-slate-500 mt-2 ml-1 text-base">
+                            Real-time triage and casualty management dashboard.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border shadow-sm">
+                        <Button 
+                            variant="ghost" 
+                            onClick={fetchPatients}
+                            className="text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            Refresh
+                        </Button>
+                        <div className="h-6 w-px bg-slate-200" />
+                        <Button 
+                            className="bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-200 rounded-xl gap-2" 
+                            onClick={() => setShowArrivalModal(true)}
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Arrival
+                        </Button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="bg-blue-50/50 dark:bg-blue-900/20"><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Active Patients</p><p className="text-2xl font-bold">{stats.total}</p></div><Users className="w-8 h-8 text-blue-500 opacity-50" /></CardContent></Card>
-                    <Card className="bg-red-50/50 dark:bg-red-900/20"><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-destructive font-medium">Critical (Red)</p><p className="text-2xl font-bold text-destructive">{stats.critical}</p></div><Ambulance className="w-8 h-8 text-destructive opacity-50" /></CardContent></Card>
-                    <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Untriaged</p><p className="text-2xl font-bold">{stats.untriaged}</p></div><Stethoscope className="w-8 h-8 opacity-20" /></CardContent></Card>
-                    <Card><CardContent className="p-4 flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Avg Wait</p><p className="text-2xl font-bold">{stats.avgWaitMinutes}m</p></div><Clock className="w-8 h-8 opacity-20" /></CardContent></Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 opacity-50" />
+                        <CardContent className="p-5 flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Patients</p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.total}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                <Users className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border-rose-100 shadow-sm rounded-xl overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-50 rounded-full -mr-8 -mt-8 opacity-50" />
+                        <CardContent className="p-5 flex items-center justify-between relative z-10">
+                            <div>
+                                <p className="text-xs font-bold text-rose-600 uppercase tracking-wider flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                                    Critical
+                                </p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.critical}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                                <Ambulance className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden relative">
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Untriaged</p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.untriaged}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                                <Stethoscope className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border-slate-200 shadow-sm rounded-xl overflow-hidden relative">
+                        <CardContent className="p-5 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Wait Time</p>
+                                <p className="text-3xl font-bold text-slate-900 mt-1">{stats.avgWaitMinutes}m</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600">
+                                <Clock className="w-6 h-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
             {/* Dashboard Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {patients.length === 0 ? (
-                    <div className="col-span-full text-center py-20 text-muted-foreground border-2 border-dashed rounded-xl">No active emergency patients.</div>
+                    <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl">
+                        <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-4 shadow-sm">
+                            <Activity className="w-8 h-8 text-slate-300" />
+                        </div>
+                        <p className="text-lg font-medium text-slate-600">No active emergency patients</p>
+                        <p className="text-sm">New arrivals will appear here instantly</p>
+                    </div>
                 ) : (
                     patients.map(patient => (
-                        <Card key={patient.id} className={cn("border-l-8 hover:shadow-md transition-all", getTriageColor(patient.triageColor))}>
-                            <CardHeader className="pb-2 p-4">
+                        <Card key={patient.id} className={cn(
+                            "group hover:shadow-lg transition-all duration-300 border overflow-hidden",
+                            patient.triageColor === 'RED' ? 'border-l-8 border-l-rose-500 border-t-slate-100 border-r-slate-100 border-b-slate-100' :
+                            patient.triageColor === 'ORANGE' ? 'border-l-8 border-l-orange-500 border-t-slate-100 border-r-slate-100 border-b-slate-100' :
+                            patient.triageColor === 'YELLOW' ? 'border-l-8 border-l-yellow-500 border-t-slate-100 border-r-slate-100 border-b-slate-100' :
+                            patient.triageColor === 'GREEN' ? 'border-l-8 border-l-emerald-500 border-t-slate-100 border-r-slate-100 border-b-slate-100' :
+                            'border-slate-100'
+                        )}>
+                            <CardHeader className="p-5 pb-3 bg-white">
                                 <div className="flex justify-between items-start">
-                                    <div className="flex gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center font-bold text-lg shadow-sm border">
+                                    <div className="flex gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-bold text-lg text-slate-700 shadow-inner">
                                             {patient.patient.name.charAt(0)}
                                         </div>
                                         <div>
-                                            <CardTitle className="text-base truncate max-w-[120px]" title={patient.patient.name}>{patient.patient.name}</CardTitle>
-                                            <p className="text-xs font-mono opacity-80">{patient.patient.uhid}</p>
+                                            <CardTitle className="text-lg font-bold text-slate-900 truncate max-w-[140px]" title={patient.patient.name}>
+                                                {patient.patient.name}
+                                            </CardTitle>
+                                            <p className="text-xs font-mono text-slate-500 mt-1 bg-slate-50 px-1.5 py-0.5 rounded w-fit">
+                                                {patient.patient.uhid}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <Badge variant="outline" className="bg-background/80backdrop-blur mb-1 block shadow-sm border-0 font-bold">
+                                    <div className="text-right flex flex-col items-end">
+                                        <Badge variant="outline" className={cn(
+                                            "mb-1 border-0 font-bold px-2 py-0.5 rounded-lg shadow-sm",
+                                            patient.triageColor === 'RED' ? 'bg-rose-100 text-rose-700' :
+                                            patient.triageColor === 'ORANGE' ? 'bg-orange-100 text-orange-700' :
+                                            patient.triageColor === 'YELLOW' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-emerald-100 text-emerald-700'
+                                        )}>
                                             {patient.triageColor || 'NONE'}
                                         </Badge>
-                                        <span className="text-xs font-bold flex items-center justify-end gap-1">
+                                        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
                                             <Clock className="w-3 h-3" /> {getWaitTime(patient.arrivalTime)}
                                         </span>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-4 pt-0 pb-2">
-                                <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                                    <div className="bg-background/40 p-1.5 rounded border border-transparent hover:border-border/50 transition-colors">
-                                        <span className="text-[10px] uppercase tracking-wider opacity-70 block">BP / Pulse</span>
-                                        <span className="font-semibold">{patient.vitalSigns[0]?.bpSystolic || '-'}/{patient.vitalSigns[0]?.bpDiastolic || '-'} <span className="text-xs text-muted-foreground">/ {patient.vitalSigns[0]?.pulse || '-'}</span></span>
+                            <CardContent className="p-5 pt-0 pb-4 bg-white">
+                                <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 group-hover:border-slate-200 transition-colors overflow-hidden">
+                                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-0.5 truncate">BP / Pulse</span>
+                                        <span className="font-bold text-slate-700 truncate block" title={`${patient.vitalSigns[0]?.bpSystolic || '-'}/${patient.vitalSigns[0]?.bpDiastolic || '-'} / ${patient.vitalSigns[0]?.pulse || '-'}`}>
+                                            {patient.vitalSigns[0]?.bpSystolic || '-'}/{patient.vitalSigns[0]?.bpDiastolic || '-'} 
+                                            <span className="text-xs text-slate-400 font-normal ml-1">/ {patient.vitalSigns[0]?.pulse || '-'}</span>
+                                        </span>
                                     </div>
-                                    <div className="bg-background/40 p-1.5 rounded border border-transparent hover:border-border/50 transition-colors">
-                                        <span className="text-[10px] uppercase tracking-wider opacity-70 block">SpO2</span>
-                                        <span className={cn("font-semibold", (patient.vitalSigns[0]?.spO2 || 100) < 95 ? "text-destructive animate-pulse" : "")}>
-                                            {patient.vitalSigns[0]?.spO2 || '-'}%
+                                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 group-hover:border-slate-200 transition-colors overflow-hidden">
+                                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-0.5 truncate">SpO2</span>
+                                        <span className={cn("font-bold text-slate-700 truncate block", (patient.vitalSigns[0]?.spO2 || 100) < 95 ? "text-rose-600 animate-pulse" : "")}>
+                                            {patient.vitalSigns[0]?.spO2 ? Math.round(patient.vitalSigns[0]?.spO2) : '-'}%
                                         </span>
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="p-2 bg-background/30 flex gap-2">
-                                <Button size="sm" className="flex-1 h-8 text-xs bg-white text-black hover:bg-slate-100 border shadow-sm" onClick={() => handleCallDoctor(patient)}>
-                                    <Megaphone className="w-3 h-3 mr-1.5 text-blue-600" /> Doc
+                            <CardFooter className="p-3 bg-slate-50 border-t border-slate-100 flex gap-3">
+                                <Button size="sm" className="flex-1 h-9 text-xs font-semibold bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-sm rounded-lg" onClick={() => handleCallDoctor(patient)}>
+                                    <Megaphone className="w-3.5 h-3.5 mr-2 text-indigo-500" /> Call Doctor
                                 </Button>
-                                <Button size="sm" className="flex-1 h-8 text-xs bg-white text-black hover:bg-slate-100 border shadow-sm" onClick={() => { setSelectedPatient(patient); setShowMedsModal(true); }}>
-                                    <Pill className="w-3 h-3 mr-1.5 text-red-600" /> Meds
+                                <Button size="sm" className="flex-1 h-9 text-xs font-semibold bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-sm rounded-lg" onClick={() => { setSelectedPatient(patient); setShowMedsModal(true); }}>
+                                    <Pill className="w-3.5 h-3.5 mr-2 text-rose-500" /> Order Meds
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -251,73 +347,100 @@ export default function EmergencyDashboard() {
 
             {/* Quick Meds Modal */}
             <Dialog open={showMedsModal} onOpenChange={setShowMedsModal}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>STAT Medication</DialogTitle>
-                        <DialogDescription>1-Click order for {selectedPatient?.patient.name}</DialogDescription>
+                <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-white rounded-2xl border-0 shadow-2xl">
+                    <DialogHeader className="p-6 pb-2 bg-slate-50 border-b border-slate-100">
+                        <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center">
+                                <Pill className="w-4 h-4 text-rose-600" />
+                            </div>
+                            STAT Medication
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-500">Fast-track order for <span className="font-semibold text-slate-900">{selectedPatient?.patient.name}</span></DialogDescription>
                     </DialogHeader>
-                    <Tabs defaultValue="quick">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="quick">Quick Order</TabsTrigger>
-                            <TabsTrigger value="custom">Custom</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="quick" className="space-y-2 mt-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                {EMERGENCY_MEDS.map(med => (
-                                    <Button key={med.id} variant="outline" className="h-auto py-3 justify-start flex-col items-start gap-1 hover:border-primary/50" onClick={() => handleOrderMeds(med.name, med.dose, med.route)} disabled={processing}>
-                                        <span className="font-bold flex items-center w-full justify-between">
-                                            {med.name}
-                                            <Badge variant="secondary" className="text-[10px] bg-primary/10">{med.route}</Badge>
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">{med.dose}</span>
-                                    </Button>
-                                ))}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="custom" className="space-y-4 mt-4">
-                            <div className="space-y-2">
-                                <Label>Medication Name</Label>
-                                <Input placeholder="e.g. Furosemide" value={customMed.name} onChange={e => setCustomMed({ ...customMed, name: e.target.value })} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Dose</Label>
-                                    <Input placeholder="e.g. 40mg" value={customMed.dose} onChange={e => setCustomMed({ ...customMed, dose: e.target.value })} />
+                    
+                    <div className="p-6">
+                        <Tabs defaultValue="quick" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl mb-6">
+                                <TabsTrigger value="quick" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Quick Order</TabsTrigger>
+                                <TabsTrigger value="custom" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Custom</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="quick" className="mt-0">
+                                <div className="grid grid-cols-2 gap-3">
+                                    {EMERGENCY_MEDS.map(med => (
+                                        <Button 
+                                            key={med.id} 
+                                            variant="outline" 
+                                            className="h-auto py-3 px-4 justify-start flex-col items-start gap-1 border-slate-200 hover:border-rose-300 hover:bg-rose-50 transition-all group" 
+                                            onClick={() => handleOrderMeds(med.name, med.dose, med.route)} 
+                                            disabled={processing}
+                                        >
+                                            <span className="font-bold text-slate-700 group-hover:text-rose-700 flex items-center w-full justify-between text-sm">
+                                                {med.name}
+                                                <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-rose-600">{med.route}</Badge>
+                                            </span>
+                                            <span className="text-xs text-slate-400 group-hover:text-rose-600/70">{med.dose}</span>
+                                        </Button>
+                                    ))}
                                 </div>
+                            </TabsContent>
+                            <TabsContent value="custom" className="space-y-5 mt-0">
                                 <div className="space-y-2">
-                                    <Label>Route</Label>
-                                    <Select value={customMed.route} onValueChange={v => setCustomMed({ ...customMed, route: v })}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="IV">IV</SelectItem>
-                                            <SelectItem value="IM">IM</SelectItem>
-                                            <SelectItem value="PO">PO</SelectItem>
-                                            <SelectItem value="SL">SL</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Medication Name</Label>
+                                    <Input className="bg-slate-50 border-slate-200 focus:bg-white transition-colors" placeholder="e.g. Furosemide" value={customMed.name} onChange={e => setCustomMed({ ...customMed, name: e.target.value })} />
                                 </div>
-                            </div>
-                            <Button className="w-full" onClick={() => handleOrderMeds(customMed.name, customMed.dose, customMed.route)} disabled={!customMed.name || processing}>Place Order</Button>
-                        </TabsContent>
-                    </Tabs>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dose</Label>
+                                        <Input className="bg-slate-50 border-slate-200 focus:bg-white transition-colors" placeholder="e.g. 40mg" value={customMed.dose} onChange={e => setCustomMed({ ...customMed, dose: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Route</Label>
+                                        <Select value={customMed.route} onValueChange={v => setCustomMed({ ...customMed, route: v })}>
+                                            <SelectTrigger className="bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="IV">IV</SelectItem>
+                                                <SelectItem value="IM">IM</SelectItem>
+                                                <SelectItem value="PO">PO</SelectItem>
+                                                <SelectItem value="SL">SL</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 shadow-lg shadow-slate-200 mt-2" onClick={() => handleOrderMeds(customMed.name, customMed.dose, customMed.route)} disabled={!customMed.name || processing}>Place Order</Button>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
                 </DialogContent>
             </Dialog>
 
             {/* New Arrival Modal */}
             <Dialog open={showArrivalModal} onOpenChange={setShowArrivalModal}>
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>New Emergency Arrival</DialogTitle>
-                        <DialogDescription>Quick Registration & Triage</DialogDescription>
+                <DialogContent className="sm:max-w-2xl p-0 overflow-hidden bg-white rounded-2xl border-0 shadow-2xl">
+                    <DialogHeader className="p-6 pb-4 bg-slate-900 text-white">
+                         <div className="flex items-center gap-3 mb-1">
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
+                                <Ambulance className="w-5 h-5 text-white" />
+                            </div>
+                            <DialogTitle className="text-xl">New Emergency Arrival</DialogTitle>
+                         </div>
+                        <DialogDescription className="text-slate-300 ml-13">Quick Registration & Triage Protocol</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-6 py-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label>Full Name</Label><Input placeholder="John Doe" value={newPatient.name} onChange={e => setNewPatient({ ...newPatient, name: e.target.value })} /></div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-2"><Label>Age</Label><Input type="number" placeholder="35" value={newPatient.age} onChange={e => setNewPatient({ ...newPatient, age: e.target.value })} /></div>
-                                <div className="space-y-2"><Label>Gender</Label>
+                    
+                    <div className="p-6 grid gap-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Full Name</Label>
+                                <Input className="h-10 bg-slate-50 border-slate-200" placeholder="John Doe" value={newPatient.name} onChange={e => setNewPatient({ ...newPatient, name: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Age</Label>
+                                    <Input className="h-10 bg-slate-50 border-slate-200" type="number" placeholder="35" value={newPatient.age} onChange={e => setNewPatient({ ...newPatient, age: e.target.value })} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gender</Label>
                                     <Select value={newPatient.gender} onValueChange={v => setNewPatient({ ...newPatient, gender: v })}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="Male">Male</SelectItem>
                                             <SelectItem value="Female">Female</SelectItem>
@@ -328,56 +451,69 @@ export default function EmergencyDashboard() {
                             </div>
                         </div>
 
-                        <div className="space-y-2"><Label>Presenting Complaint</Label><Textarea placeholder="e.g. Chest pain, RTA..." value={newPatient.complaint} onChange={e => setNewPatient({ ...newPatient, complaint: e.target.value })} /></div>
-
                         <div className="space-y-2">
-                            <Label>Initial Triage</Label>
-                            <div className="flex gap-2">
+                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Presenting Complaint</Label>
+                            <Textarea className="bg-slate-50 border-slate-200 min-h-[80px]" placeholder="e.g. Chest pain, RTA, difficulty breathing..." value={newPatient.complaint} onChange={e => setNewPatient({ ...newPatient, complaint: e.target.value })} />
+                        </div>
+
+                        <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <Activity className="w-3.5 h-3.5" /> Initial Triage
+                            </Label>
+                            <div className="flex gap-3">
                                 {['RED', 'ORANGE', 'YELLOW', 'GREEN'].map(c => (
-                                    <div key={c} className={cn("flex-1 p-3 rounded-lg border-2 cursor-pointer text-center font-bold text-sm transition-all",
-                                        newPatient.triageColor === c ? "border-black scale-105 shadow-md" : "border-transparent opacity-60 hover:opacity-100",
-                                        c === 'RED' ? 'bg-red-200 text-red-900' : c === 'ORANGE' ? 'bg-orange-200 text-orange-900' : c === 'YELLOW' ? 'bg-yellow-200 text-yellow-900' : 'bg-green-200 text-green-900'
+                                    <div key={c} className={cn("flex-1 p-3 rounded-xl border-2 cursor-pointer text-center transition-all duration-200",
+                                        newPatient.triageColor === c ? "scale-105 shadow-md ring-2 ring-offset-2 ring-slate-100" : "opacity-60 hover:opacity-100 hover:bg-slate-50 border-transparent",
+                                        c === 'RED' ? (newPatient.triageColor === c ? 'bg-rose-100 text-rose-800 border-rose-500' : 'bg-rose-50 text-rose-800') : 
+                                        c === 'ORANGE' ? (newPatient.triageColor === c ? 'bg-orange-100 text-orange-800 border-orange-500' : 'bg-orange-50 text-orange-800') : 
+                                        c === 'YELLOW' ? (newPatient.triageColor === c ? 'bg-yellow-100 text-yellow-800 border-yellow-500' : 'bg-yellow-50 text-yellow-800') : 
+                                        (newPatient.triageColor === c ? 'bg-emerald-100 text-emerald-800 border-emerald-500' : 'bg-emerald-50 text-emerald-800')
                                     )} onClick={() => setNewPatient({ ...newPatient, triageColor: c })}>
-                                        {c}
+                                        <span className="font-bold text-sm block">{c}</span>
+                                        <span className="text-[10px] opacity-80 font-medium uppercase tracking-wide">
+                                            {c === 'RED' ? 'Critical' : c === 'ORANGE' ? 'High Risk' : c === 'YELLOW' ? 'Urgent' : 'Standard'}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="space-y-2 border rounded-lg p-3 bg-muted/20">
-                            <Label className="mb-2 block">Vitals (Optional)</Label>
-                            <div className="grid grid-cols-5 gap-2">
-                                <div><Input placeholder="Sys" value={newPatient.bpSystolic} onChange={e => setNewPatient({ ...newPatient, bpSystolic: e.target.value })} /><span className="text-[10px] text-muted-foreground">BP Sys</span></div>
-                                <div><Input placeholder="Dia" value={newPatient.bpDiastolic} onChange={e => setNewPatient({ ...newPatient, bpDiastolic: e.target.value })} /><span className="text-[10px] text-muted-foreground">BP Dia</span></div>
-                                <div><Input placeholder="Pulse" value={newPatient.pulse} onChange={e => setNewPatient({ ...newPatient, pulse: e.target.value })} /><span className="text-[10px] text-muted-foreground">Pulse</span></div>
-                                <div><Input placeholder="SpO2" value={newPatient.spO2} onChange={e => setNewPatient({ ...newPatient, spO2: e.target.value })} /><span className="text-[10px] text-muted-foreground">SpO2</span></div>
-                                <div><Input placeholder="Temp" value={newPatient.temp} onChange={e => setNewPatient({ ...newPatient, temp: e.target.value })} /><span className="text-[10px] text-muted-foreground">Temp</span></div>
+                        <div className="space-y-3 border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Vitals (Optional)</Label>
+                            <div className="grid grid-cols-5 gap-3">
+                                <div><Input className="h-9 text-center bg-white" placeholder="-" value={newPatient.bpSystolic} onChange={e => setNewPatient({ ...newPatient, bpSystolic: e.target.value })} /><span className="text-[10px] text-slate-400 text-center block mt-1">BP Sys</span></div>
+                                <div><Input className="h-9 text-center bg-white" placeholder="-" value={newPatient.bpDiastolic} onChange={e => setNewPatient({ ...newPatient, bpDiastolic: e.target.value })} /><span className="text-[10px] text-slate-400 text-center block mt-1">BP Dia</span></div>
+                                <div><Input className="h-9 text-center bg-white" placeholder="-" value={newPatient.pulse} onChange={e => setNewPatient({ ...newPatient, pulse: e.target.value })} /><span className="text-[10px] text-slate-400 text-center block mt-1">Pulse</span></div>
+                                <div><Input className="h-9 text-center bg-white" placeholder="-" value={newPatient.spO2} onChange={e => setNewPatient({ ...newPatient, spO2: e.target.value })} /><span className="text-[10px] text-slate-400 text-center block mt-1">SpO2</span></div>
+                                <div><Input className="h-9 text-center bg-white" placeholder="-" value={newPatient.temp} onChange={e => setNewPatient({ ...newPatient, temp: e.target.value })} /><span className="text-[10px] text-slate-400 text-center block mt-1">Temp</span></div>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-2 border p-3 rounded-md bg-destructive/5 border-destructive/20">
-                            <Checkbox id="mlc" checked={newPatient.isMLC} onCheckedChange={(c) => setNewPatient({ ...newPatient, isMLC: c as boolean })} />
-                            <div className="grid gap-1.5 leading-none">
-                                <Label htmlFor="mlc" className="text-destructive font-bold">Medico-Legal Case (MLC)</Label>
-                                <p className="text-sm text-muted-foreground">Check if this is an accident or police case.</p>
+                        <div className="flex items-center space-x-3 border border-rose-100 p-4 rounded-xl bg-rose-50/50 hover:bg-rose-50 transition-colors">
+                            <Checkbox id="mlc" className="border-rose-300 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600 text-white" checked={newPatient.isMLC} onCheckedChange={(c) => setNewPatient({ ...newPatient, isMLC: c as boolean })} />
+                            <div className="grid gap-0.5 leading-none">
+                                <Label htmlFor="mlc" className="text-rose-700 font-bold text-sm cursor-pointer">Medico-Legal Case (MLC)</Label>
+                                <p className="text-xs text-rose-600/70">Check if this is an accident, assault, or police case.</p>
                             </div>
                         </div>
 
                         {newPatient.isMLC && (
-                            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
-                                <div className="space-y-2"><Label>Type</Label>
+                            <div className="grid grid-cols-2 gap-6 animate-in slide-in-from-top-2 p-4 bg-rose-50/50 rounded-xl border border-rose-100 -mt-2">
+                                <div className="space-y-2"><Label className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Type</Label>
                                     <Select value={newPatient.mlcType} onValueChange={v => setNewPatient({ ...newPatient, mlcType: v })}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectTrigger className="bg-white border-rose-200"><SelectValue /></SelectTrigger>
                                         <SelectContent><SelectItem value="Accident">Accident</SelectItem><SelectItem value="Assault">Assault</SelectItem><SelectItem value="Poisoning">Poisoning</SelectItem></SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2"><Label>Police Station</Label><Input placeholder="Station Name" value={newPatient.policeStation} onChange={e => setNewPatient({ ...newPatient, policeStation: e.target.value })} /></div>
+                                <div className="space-y-2"><Label className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Police Station</Label><Input className="bg-white border-rose-200" placeholder="Station Name" value={newPatient.policeStation} onChange={e => setNewPatient({ ...newPatient, policeStation: e.target.value })} /></div>
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowArrivalModal(false)}>Cancel</Button>
-                        <Button className="bg-destructive hover:bg-destructive/90" onClick={handleNewArrival} disabled={!newPatient.name || !newPatient.age || processing}>Register</Button>
+                    <DialogFooter className="p-6 pt-2 bg-white border-t border-slate-100 gap-3">
+                        <Button variant="outline" onClick={() => setShowArrivalModal(false)} className="h-11 px-6 rounded-xl border-slate-200">Cancel</Button>
+                        <Button className="bg-rose-600 hover:bg-rose-700 text-white h-11 px-8 rounded-xl shadow-lg shadow-rose-200" onClick={handleNewArrival} disabled={!newPatient.name || !newPatient.age || processing}>
+                            {processing ? 'Registering...' : 'Register Patient'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

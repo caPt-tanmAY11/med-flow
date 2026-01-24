@@ -50,29 +50,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Desktop nav */}
-      <nav className="hidden md:flex items-center gap-6 text-sm text-neutral-700">
-        <button className="px-3 py-1 rounded-full hover:bg-neutral-100">
-          Home
-        </button>
-        <button className="px-3 py-1 rounded-full hover:bg-neutral-100">
-          Services
-        </button>
-        <button className="px-3 py-1 rounded-full hover:bg-neutral-100">
-          Doctors
-        </button>
-        <button className="px-3 py-1 rounded-full hover:bg-neutral-100">
-          Contact
-        </button>
-
-        <button
-          onClick={() => router.push('/auth')}
-          className="rounded-full px-4 py-2 bg-primary text-white"
-        >
-          Staff Login
-        </button>
-      </nav>
-
       <main className="pt-32 pb-20">
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-6 mb-32">

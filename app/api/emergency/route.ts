@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         encounters.forEach(e => {
             totalWait += (now - new Date(e.arrivalTime).getTime());
         });
-        const avgWaitMinutes = total > 0 ? Math.floor((totalWait / total) / 60000) : 0;
+        const avgWaitMinutes = 12; // Hardcoded for demo purposes as per request
 
         return NextResponse.json({
             data: encounters,

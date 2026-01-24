@@ -234,292 +234,319 @@ export default function RegistrationPage() {
     };
 
     return (
-        <div className="space-y-8 animate-fade-in">
-            <div className="flex items-center justify-between">
+        <div className="max-w-5xl mx-auto pb-10 animate-fade-in font-inter">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-                        <UserPlus className="w-6 h-6 text-primary" />
-                        SmartPanjikaran
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-200">
+                            <UserPlus className="w-6 h-6 text-white" />
+                        </div>
+                        Smart Panjikaran
                     </h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                        Register a new patient in the hospital system
+                    <p className="text-slate-500 mt-2 ml-1 text-base">
+                        New patient enrollment and admission intake.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="outline" onClick={() => setShowIdCapture(true)}>
-                        <QrCode className="w-4 h-4 mr-2" />
-                        Scan Aadhaar QR
+                <div className="flex items-center gap-3 bg-white p-1.5 rounded-2xl border shadow-sm self-start md:self-auto">
+                    <Button 
+                        variant="ghost" 
+                        onClick={() => setShowIdCapture(true)}
+                        className="text-slate-600 hover:text-violet-700 hover:bg-violet-50 rounded-xl gap-2"
+                    >
+                        <QrCode className="w-4 h-4" />
+                        Scan Aadhaar
                     </Button>
-                    <label className="flex items-center gap-2 text-sm">
+                    <div className="h-6 w-px bg-slate-200" />
+                    <label className="flex items-center gap-2 text-sm font-medium text-slate-600 px-3 cursor-pointer select-none">
                         <input
                             type="checkbox"
                             id="isTemporary"
                             checked={formData.isTemporary}
                             onChange={handleChange}
-                            className="rounded"
+                            className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
                         />
-                        Emergency/Temporary Registration
+                        Emergency Reg.
                     </label>
                 </div>
             </div>
 
+            {/* Success Banner */}
             {registeredPatient && (
-                <div className="p-4 bg-status-success/10 border border-status-success/20 rounded-xl flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-status-success" />
+                <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    </div>
                     <div>
-                        <p className="font-medium text-status-success">Patient Registered Successfully</p>
-                        <p className="text-sm">UHID: <span className="font-mono font-bold">{registeredPatient.uhid}</span> - {registeredPatient.name}</p>
+                        <h4 className="font-bold text-emerald-900 text-sm uppercase tracking-wide">Registration Successful</h4>
+                        <p className="text-emerald-700 mt-0.5">
+                            UHID: <span className="font-mono font-bold bg-white/50 px-1.5 py-0.5 rounded text-emerald-800">{registeredPatient.uhid}</span> • {registeredPatient.name}
+                        </p>
                     </div>
                 </div>
             )}
 
+            {/* Duplicate Warning */}
             {duplicates.length > 0 && (
-                <div className="p-4 bg-status-warning/10 border border-status-warning/20 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-5 h-5 text-status-warning" />
-                        <p className="font-medium text-status-warning">Potential Duplicates Detected</p>
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-2xl animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <h4 className="font-bold text-amber-800">Potential Duplicates Found</h4>
                     </div>
-                    <ul className="text-sm space-y-1">
+                    <ul className="space-y-2">
                         {duplicates.map(d => (
-                            <li key={d.id}>• {d.name} ({d.uhid}) - matched by {d.similarity}</li>
+                            <li key={d.id} className="text-sm text-amber-700 bg-white/60 p-2 rounded-lg border border-amber-100/50 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <b>{d.name}</b> <span className="font-mono opacity-80">({d.uhid})</span> <span className="text-amber-600/70 text-xs">- {d.similarity} match</span>
+                            </li>
                         ))}
                     </ul>
                 </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-                <div className="grid lg:grid-cols-2 gap-6">
-                    <div className="floating-card">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            Personal Information And Details
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="firstName">First Name *</Label>
-                                    <Input id="firstName" value={formData.firstName} onChange={handleChange} placeholder="Enter first name" className="mt-1" required />
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid lg:grid-cols-12 gap-6">
+                    {/* Left Column - Personal Info */}
+                    <div className="lg:col-span-8 space-y-6">
+                        {/* Personal Details Card */}
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
+                                <Users className="w-5 h-5 text-violet-500" />
+                                Personal Details
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="firstName" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">First Name</Label>
+                                    <Input id="firstName" value={formData.firstName} onChange={handleChange} placeholder="John" className="h-10 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20" required />
                                 </div>
-                                <div>
-                                    <Label htmlFor="lastName">Last Name</Label>
-                                    <Input id="lastName" value={formData.lastName} onChange={handleChange} placeholder="Enter last name" className="mt-1" />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="lastName" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Name</Label>
+                                    <Input id="lastName" value={formData.lastName} onChange={handleChange} placeholder="Doe" className="h-10 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="dob" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date of Birth</Label>
+                                    <Input id="dob" type="date" value={formData.dob} onChange={handleChange} className="h-10 border-slate-200 focus:border-violet-500 focus:ring-violet-500/20" required />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="gender" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Gender</Label>
+                                        <select id="gender" value={formData.gender} onChange={handleChange} className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all" required>
+                                            <option value="">Select</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="bloodGroup" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Blood Group</Label>
+                                        <select id="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all">
+                                            <option value="">Select</option>
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="dob">Date of Birth *</Label>
-                                    <Input id="dob" type="date" value={formData.dob} onChange={handleChange} className="mt-1" required />
+                        </div>
+
+                        {/* Address & Contact Card */}
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
+                                <MapPin className="w-5 h-5 text-indigo-500" />
+                                Address & Contact
+                            </h3>
+                            <div className="space-y-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="phone" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mobile Number</Label>
+                                        <Input id="phone" value={formData.phone} onChange={handleChange} placeholder="+91 99999 99999" className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20" required />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="email" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email Address</Label>
+                                        <Input id="email" type="email" value={formData.email} onChange={handleChange} placeholder="john.doe@example.com" className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <Label htmlFor="gender">Gender *</Label>
-                                    <select id="gender" value={formData.gender} onChange={handleChange} className="elegant-select mt-1" required>
-                                        <option value="">Select gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="address" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Street Address</Label>
+                                    <Input id="address" value={formData.address} onChange={handleChange} placeholder="Flat No, Building, Street" className="h-10 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20" />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="city" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">City</Label>
+                                        <Input id="city" value={formData.city} onChange={handleChange} className="h-10 border-slate-200" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="state" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">State</Label>
+                                        <Input id="state" value={formData.state} onChange={handleChange} className="h-10 border-slate-200" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="pincode" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pincode</Label>
+                                        <Input id="pincode" value={formData.pincode} onChange={handleChange} className="h-10 border-slate-200" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         {/* ID Verification Card */}
+                         <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
+                                <FileText className="w-5 h-5 text-blue-500" />
+                                Identity Proof
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="idType" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Document Type</Label>
+                                    <select id="idType" value={formData.idType} onChange={handleChange} className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                        <option value="">Select Document</option>
+                                        <option value="aadhaar">Aadhaar Card</option>
+                                        <option value="pan">PAN Card</option>
+                                        <option value="passport">Passport</option>
+                                        <option value="voter">Voter ID</option>
+                                        <option value="driving">Driving License</option>
                                     </select>
                                 </div>
-                            </div>
-                            <div>
-                                <Label htmlFor="bloodGroup">Blood Group</Label>
-                                <select id="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="elegant-select mt-1">
-                                    <option value="">Select blood group</option>
-                                    <option value="A+">A+</option>
-                                    <option value="A-">A-</option>
-                                    <option value="B+">B+</option>
-                                    <option value="B-">B-</option>
-                                    <option value="O+">O+</option>
-                                    <option value="O-">O-</option>
-                                    <option value="AB+">AB+</option>
-                                    <option value="AB-">AB-</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="floating-card">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <Phone className="w-4 h-4" />
-                            Contact Information
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="phone">Phone Number *</Label>
-                                <Input id="phone" value={formData.phone} onChange={handleChange} placeholder="+91 " className="mt-1" required />
-                            </div>
-                            <div>
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" type="email" value={formData.email} onChange={handleChange} placeholder="patient@email.com" className="mt-1" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label htmlFor="emergencyName">Emergency Contact Name</Label>
-                                    <Input id="emergencyName" value={formData.emergencyName} onChange={handleChange} placeholder="Name" className="mt-1" />
-                                </div>
-                                <div>
-                                    <Label htmlFor="emergency">Emergency Contact</Label>
-                                    <Input id="emergency" value={formData.emergency} onChange={handleChange} placeholder="+91 " className="mt-1" />
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="idNumber" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Document Number</Label>
+                                    <Input id="idNumber" value={formData.idNumber} onChange={handleChange} placeholder="XXXX-XXXX-XXXX" className="h-10 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="floating-card">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            Address
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="address">Street Address</Label>
-                                <Input id="address" value={formData.address} onChange={handleChange} placeholder="Enter street address" className="mt-1" />
-                            </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <Label htmlFor="city">City</Label>
-                                    <Input id="city" value={formData.city} onChange={handleChange} placeholder="City" className="mt-1" />
-                                </div>
-                                <div>
-                                    <Label htmlFor="state">State</Label>
-                                    <Input id="state" value={formData.state} onChange={handleChange} placeholder="State" className="mt-1" />
-                                </div>
-                                <div>
-                                    <Label htmlFor="pincode">PIN Code</Label>
-                                    <Input id="pincode" value={formData.pincode} onChange={handleChange} placeholder="000000" className="mt-1" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="floating-card">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            ID Verification
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="idType">ID Type</Label>
-                                <select id="idType" value={formData.idType} onChange={handleChange} className="elegant-select mt-1">
-                                    <option value="">Select ID type</option>
-                                    <option value="aadhaar">Aadhaar Card</option>
-                                    <option value="pan">PAN Card</option>
-                                    <option value="passport">Passport</option>
-                                    <option value="voter">Voter ID</option>
-                                    <option value="driving">Driving License</option>
-                                </select>
-                            </div>
-                            <div>
-                                <Label htmlFor="idNumber">ID Number</Label>
-                                <Input id="idNumber" value={formData.idNumber} onChange={handleChange} placeholder="Enter ID number" className="mt-1" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="floating-card lg:col-span-2">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4" />
-                            Medical History
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <Label htmlFor="allergies">Known Allergies</Label>
-                                <Input id="allergies" value={formData.allergies} onChange={handleChange} placeholder="Enter any known allergies (comma separated)" className="mt-1" />
-                            </div>
-                            <div>
-                                <Label htmlFor="conditions">Pre-existing Conditions</Label>
-                                <Input id="conditions" value={formData.conditions} onChange={handleChange} placeholder="Enter any pre-existing conditions" className="mt-1" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="floating-card lg:col-span-2 border-primary/20 bg-primary/5">
-                        <h3 className="font-semibold mb-4 flex items-center gap-2 text-primary">
-                            <Stethoscope className="w-4 h-4" />
-                            Visit Details (Intake)
-                        </h3>
-                        <div className="grid md:grid-cols-3 gap-6">
-                            <div>
-                                <Label htmlFor="visitType">Visit Type</Label>
-                                <select id="visitType" value={formData.visitType} onChange={handleChange} className="elegant-select mt-1 font-medium">
-                                    <option value="OPD">OPD (Outpatient)</option>
-                                    <option value="EMERGENCY">Emergency / Casualty</option>
-                                    <option value="IPD">IPD (Admission)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <Label htmlFor="department">Department</Label>
-                                <select id="department" value={formData.department} onChange={handleChange} className="elegant-select mt-1">
-                                    <option value="General Medicine">General Medicine</option>
-                                    <option value="Orthopedics">Orthopedics</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Cardiology">Cardiology</option>
-                                    <option value="Gynecology">Gynecology</option>
-                                    <option value="Dermatology">Dermatology</option>
-                                    <option value="ENT">ENT</option>
-                                </select>
-                            </div>
-                            {formData.visitType === 'OPD' && (
-                                <div className="animate-fade-in">
-                                    <Label htmlFor="referredDoctor">Referred Doctor *</Label>
-                                    <select
-                                        id="referredDoctor"
-                                        value={formData.referredDoctor}
-                                        onChange={handleChange}
-                                        className="elegant-select mt-1"
-                                        required
-                                    >
-                                        <option value="">Select a doctor</option>
-                                        {loadingDoctors ? (
-                                            <option disabled>Loading doctors...</option>
-                                        ) : (
-                                            doctors.map(doctor => (
-                                                <option key={doctor.id} value={doctor.id}>
-                                                    {doctor.name}
-                                                </option>
-                                            ))
-                                        )}
+                    {/* Right Column - Visit & History */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Visit Details Card (Highlighted) */}
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 w-64 h-64 bg-violet-50 rounded-full blur-3xl opacity-60 -mr-20 -mt-20 pointer-events-none" />
+                            
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 relative z-10 pb-4 border-b border-slate-100">
+                                <Activity className="w-5 h-5 text-violet-500" />
+                                Visit Details
+                            </h3>
+                            
+                            <div className="space-y-5 relative z-10">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="visitType" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visit Type</Label>
+                                    <select id="visitType" value={formData.visitType} onChange={handleChange} className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all">
+                                        <option value="OPD">OPD (Outpatient)</option>
+                                        <option value="EMERGENCY">Emergency</option>
+                                        <option value="IPD">IPD (Admission)</option>
                                     </select>
                                 </div>
-                            )}
-                            {formData.visitType === 'EMERGENCY' && (
-                                <div className="animate-fade-in">
-                                    <Label htmlFor="priority" className="flex items-center gap-2">
-                                        <Activity className="w-4 h-4" /> Triage Priority
-                                    </Label>
-                                    <select id="priority" value={formData.priority} onChange={handleChange} className="elegant-select mt-1 border-status-critical/50 text-status-critical font-bold">
-                                        <option value="RED">🔴 RED (Immediate)</option>
-                                        <option value="ORANGE">🟠 ORANGE (Very Urgent)</option>
-                                        <option value="YELLOW">🟡 YELLOW (Urgent)</option>
-                                        <option value="GREEN">🟢 GREEN (Standard)</option>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="department" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</Label>
+                                    <select id="department" value={formData.department} onChange={handleChange} className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all">
+                                        <option value="General Medicine">General Medicine</option>
+                                        <option value="Orthopedics">Orthopedics</option>
+                                        <option value="Pediatrics">Pediatrics</option>
+                                        <option value="Cardiology">Cardiology</option>
+                                        <option value="Gynecology">Gynecology</option>
+                                        <option value="Dermatology">Dermatology</option>
+                                        <option value="ENT">ENT</option>
                                     </select>
                                 </div>
-                            )}
-                            {formData.visitType === 'IPD' && (
-                                <div className="animate-fade-in">
-                                    <Label htmlFor="ward" className="flex items-center gap-2">
-                                        <Stethoscope className="w-4 h-4" /> Ward Assignment
-                                    </Label>
-                                    <select id="ward" value={formData.ward} onChange={handleChange} className="elegant-select mt-1 font-medium bg-teal-50/50 border-teal-200 text-teal-900" required>
-                                        <option value="">Select Ward Type</option>
-                                        <option value="Emergency">Emergency</option>
-                                        <option value="ICU">ICU</option>
-                                        <option value="General ward A">General ward A</option>
-                                        <option value="General ward B">General ward B</option>
-                                        <option value="Private Room (Single occupancy)">Private Room (Single occupancy)</option>
-                                        <option value="Private Room (Double occupancy)">Private Room (Double occupancy)</option>
-                                        <option value="Private Room (Triple occupancy)">Private Room (Triple occupancy)</option>
-                                    </select>
+
+                                {formData.visitType === 'OPD' && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                        <Label htmlFor="referredDoctor" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Consulting Doctor</Label>
+                                        <select id="referredDoctor" value={formData.referredDoctor} onChange={handleChange} className="w-full h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all" required>
+                                            <option value="" className="text-slate-500">Select Doctor</option>
+                                            {loadingDoctors ? (
+                                                <option disabled>Loading...</option>
+                                            ) : (
+                                                doctors.map(doctor => (
+                                                    <option key={doctor.id} value={doctor.id}>{doctor.name}</option>
+                                                ))
+                                            )}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {formData.visitType === 'EMERGENCY' && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                        <Label htmlFor="priority" className="text-xs font-semibold text-rose-600 uppercase tracking-wider flex items-center gap-1">
+                                            <AlertTriangle className="w-3 h-3" /> Triage
+                                        </Label>
+                                        <select id="priority" value={formData.priority} onChange={handleChange} className="w-full h-11 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all font-bold">
+                                            <option value="RED">🔴 RED (Critical)</option>
+                                            <option value="ORANGE">🟠 ORANGE (Urgent)</option>
+                                            <option value="YELLOW">🟡 YELLOW (Warning)</option>
+                                            <option value="GREEN">🟢 GREEN (Minor)</option>
+                                        </select>
+                                    </div>
+                                )}
+                                
+                                {formData.visitType === 'IPD' && (
+                                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                        <Label htmlFor="ward" className="text-xs font-semibold text-teal-600 uppercase tracking-wider">Ward Allocation</Label>
+                                        <select id="ward" value={formData.ward} onChange={handleChange} className="w-full h-11 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all" required>
+                                            <option value="">Select Ward</option>
+                                            <option value="Emergency">Emergency</option>
+                                            <option value="ICU">ICU</option>
+                                            <option value="General ward A">General Ward A</option>
+                                            <option value="General ward B">General Ward B</option>
+                                            <option value="Private Room (Single)">Private Room (Single)</option>
+                                            <option value="Private Room (Double)">Private Room (Double)</option>
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                         {/* Emergency Contact */}
+                         <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
+                                <AlertCircle className="w-5 h-5 text-rose-500" />
+                                Emergency Contact
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="emergencyName" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</Label>
+                                    <Input id="emergencyName" value={formData.emergencyName} onChange={handleChange} placeholder="Guardian Name" className="h-10 border-slate-200" />
                                 </div>
-                            )}
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="emergency" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contact Number</Label>
+                                    <Input id="emergency" value={formData.emergency} onChange={handleChange} placeholder="+91 " className="h-10 border-slate-200" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Medical History Brief */}
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 pb-4 border-b border-slate-100">
+                                <Stethoscope className="w-5 h-5 text-teal-500" />
+                                Medical Brief
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="allergies" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Allergies</Label>
+                                    <Input id="allergies" value={formData.allergies} onChange={handleChange} placeholder="Comma separated" className="h-10 border-slate-200" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="conditions" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pre-existing Conditions</Label>
+                                    <Input id="conditions" value={formData.conditions} onChange={handleChange} placeholder="Diabetes, Hypertension..." className="h-10 border-slate-200" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-4 mt-6">
-                    <Button type="button" variant="outline" onClick={() => window.history.back()}>Cancel</Button>
-                    <Button type="submit" disabled={loading}>
+                <div className="sticky bottom-4 z-10 flex justify-end gap-3 p-4 bg-white/80 backdrop-blur-md border border-slate-200 shadow-lg rounded-2xl max-w-5xl mx-auto">
+                    <Button type="button" variant="outline" onClick={() => window.history.back()} className="rounded-xl px-6 h-11 border-slate-300 text-slate-700 hover:bg-slate-50">
+                        Cancel
+                    </Button>
+                    <Button type="submit" disabled={loading} className="rounded-xl px-8 h-11 bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-200 transition-all hover:scale-105 active:scale-95">
                         {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                        Register Patient
+                        Complete Registration
                     </Button>
                 </div>
             </form>
