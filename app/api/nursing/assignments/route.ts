@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// Helper to safely query new models
-async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
-    try {
-        return await query();
-    } catch (error) {
-        console.warn('Query failed, using fallback:', error);
-        return fallback;
-    }
-}
-
 // GET /api/nursing/assignments - Get nurse-patient assignments
 export async function GET(request: NextRequest) {
     try {
@@ -18,21 +8,18 @@ export async function GET(request: NextRequest) {
         const nurseId = searchParams.get('nurseId');
         const encounterId = searchParams.get('encounterId');
 
-        const assignments = await safeQuery(
-            () => (prisma as any).nursePatientAssignment.findMany({
-                where: {
-                    isActive: true,
-                    ...(nurseId ? { nurseId } : {}),
-                    ...(encounterId ? { encounterId } : {}),
-                },
-                orderBy: { assignedAt: 'desc' },
-            }),
-            []
-        );
+        const assignments = await prisma.nursePatientAssignment.findMany({
+            where: {
+                isActive: true,
+                ...(nurseId ? { nurseId } : {}),
+                ...(encounterId ? { encounterId } : {}),
+            },
+            orderBy: { assignedAt: 'desc' },
+        });
 
         // Get patient and encounter details for each assignment
         const enrichedAssignments = await Promise.all(
-            assignments.map(async (assignment: any) => {
+            assignments.map(async (assignment) => {
                 const encounter = await prisma.encounter.findUnique({
                     where: { id: assignment.encounterId },
                     include: {
@@ -63,21 +50,15 @@ export async function POST(request: NextRequest) {
         const { nurseId, nurseName, encounterId, patientId, assignedBy } = body;
 
         // Deactivate any existing assignment for this patient
-        await safeQuery(
-            () => (prisma as any).nursePatientAssignment.updateMany({
-                where: { encounterId, isActive: true },
-                data: { isActive: false, endTime: new Date() },
-            }),
-            null
-        );
+        await prisma.nursePatientAssignment.updateMany({
+            where: { encounterId, isActive: true },
+            data: { isActive: false, endTime: new Date() },
+        });
 
         // Create new assignment
-        const assignment = await safeQuery(
-            () => (prisma as any).nursePatientAssignment.create({
-                data: { nurseId, nurseName, encounterId, patientId, assignedBy },
-            }),
-            { id: 'temp-' + Date.now(), nurseId, nurseName, encounterId, patientId, assignedBy, assignedAt: new Date() }
-        );
+        const assignment = await prisma.nursePatientAssignment.create({
+            data: { nurseId, nurseName, encounterId, patientId, assignedBy },
+        });
 
         // Create audit event
         await prisma.auditEvent.create({
@@ -107,13 +88,10 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'Assignment ID required' }, { status: 400 });
         }
 
-        await safeQuery(
-            () => (prisma as any).nursePatientAssignment.update({
-                where: { id: assignmentId },
-                data: { isActive: false, endTime: new Date() },
-            }),
-            null
-        );
+        await prisma.nursePatientAssignment.update({
+            where: { id: assignmentId },
+            data: { isActive: false, endTime: new Date() },
+        });
 
         return NextResponse.json({ success: true });
     } catch (error) {

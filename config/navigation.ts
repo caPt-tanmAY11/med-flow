@@ -183,6 +183,12 @@ export const navigationConfig: NavGroup[] = [
                 roles: ['admin', 'management'],
             },
             {
+                title: 'Nursing Admin',
+                href: '/admin/nursing',
+                icon: Heart,
+                roles: ['admin'],
+            },
+            {
                 title: 'Management Dashboard',
                 href: '/management',
                 icon: BarChart3,
