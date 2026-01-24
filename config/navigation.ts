@@ -47,10 +47,10 @@ export const navigationConfig: NavGroup[] = [
         ],
     },
     {
-        title: 'Patient Management',
+        title: 'Smart Access and Patient Logistics',
         items: [
             {
-                title: 'Patient Registration',
+                title: 'SmartPanjikaran',
                 href: '/registration',
                 icon: UserPlus,
                 roles: ['admin', 'front_desk', 'nurse'],
@@ -70,7 +70,7 @@ export const navigationConfig: NavGroup[] = [
         ],
     },
     {
-        title: 'Clinical',
+        title: 'ClinicFlow',
         items: [
             {
                 title: 'Doctor Workstation',
@@ -95,7 +95,7 @@ export const navigationConfig: NavGroup[] = [
         ],
     },
     {
-        title: 'Diagnostics',
+        title: 'LabLink',
         items: [
             {
                 title: 'Lab & Radiology',
@@ -106,7 +106,7 @@ export const navigationConfig: NavGroup[] = [
         ],
     },
     {
-        title: 'Pharmacy & Inventory',
+        title: 'Dawakhana',
         items: [
             {
                 title: 'Pharmacy',
@@ -126,7 +126,7 @@ export const navigationConfig: NavGroup[] = [
         title: 'Operations',
         items: [
             {
-                title: 'Bed Management',
+                title: 'BedBandobast',
                 href: '/beds',
                 icon: Bed,
                 roles: ['admin', 'doctor', 'nurse', 'front_desk'],
@@ -143,13 +143,13 @@ export const navigationConfig: NavGroup[] = [
         title: 'Finance',
         items: [
             {
-                title: 'Billing',
+                title: 'PaisaTracker',
                 href: '/billing',
                 icon: Receipt,
                 roles: ['admin', 'billing', 'front_desk'],
             },
             {
-                title: 'Insurance & Claims',
+                title: 'ClaimSahayak',
                 href: '/insurance',
                 icon: Shield,
                 roles: ['admin', 'billing'],

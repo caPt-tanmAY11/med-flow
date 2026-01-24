@@ -40,12 +40,6 @@ model session {
   @@index([userId])
 }
 
-enum ROLE {
-  DOCTOR
-  NURSE
-  LAB_PERSON
-}
-
 model user {
   id            String     @unique
   name          String

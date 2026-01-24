@@ -209,7 +209,7 @@ export default function RegistrationPage() {
                 <div>
                     <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
                         <UserPlus className="w-6 h-6 text-primary" />
-                        Patient Registration
+                        SmartPanjikaran
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
                         Register a new patient in the hospital system
