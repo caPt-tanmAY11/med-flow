@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { billServiceByTariff, addBillItem } from '@/lib/billing';
 
 const labResultSchema = z.object({
     orderId: z.string().uuid(),
@@ -133,6 +134,41 @@ export async function POST(request: NextRequest) {
                 newValues: labResult as unknown as Prisma.JsonObject,
             },
         });
+
+        // 📊 Auto-Billing: Charge for lab test
+        if (order.encounter) {
+            try {
+                const testCode = order.orderName?.toUpperCase().replace(/[\s()]+/g, '-') || '';
+                const tariffCode = `LAB-${testCode.slice(0, 10)}`;
+
+                // Try to find matching tariff, otherwise bill manually
+                const tariff = await prisma.tariffMaster.findFirst({
+                    where: {
+                        category: 'LAB',
+                        OR: [
+                            { tariffCode: { contains: testCode.slice(0, 5), mode: 'insensitive' } },
+                            { description: { contains: order.orderName || '', mode: 'insensitive' } }
+                        ],
+                        isActive: true
+                    }
+                });
+
+                if (tariff) {
+                    await billServiceByTariff(order.encounter.patientId, order.encounterId, tariff.tariffCode);
+                } else {
+                    // Default lab test price
+                    await addBillItem(order.encounter.patientId, order.encounterId, {
+                        category: 'LAB',
+                        itemCode: order.orderName || 'LAB-TEST',
+                        description: order.orderName || 'Laboratory Test',
+                        quantity: 1,
+                        unitPrice: 300 // Default lab price
+                    });
+                }
+            } catch (billingError) {
+                console.warn('Lab billing failed (non-blocking):', billingError);
+            }
+        }
 
         return NextResponse.json({ data: labResult }, { status: 201 });
     } catch (error) {

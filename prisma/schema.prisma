@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DIRECT_URL")
 }
 
 model account {
@@ -48,11 +48,10 @@ model user {
   image         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime
-  role          ROLE     @default(DOCTOR)
-
-  account   account[]
-  session   session[]
-  userRoles UserRole[]
+  role          ROLE       @default(DOCTOR)
+  userRoles     UserRole[]
+  account       account[]
+  session       session[]
 }
 
 model verification {
@@ -1300,10 +1299,14 @@ enum SyncStatus {
 enum ROLE {
   DOCTOR
   NURSE
+  FRONT_DESK
+  PHARMACIST
   LAB_PERSON
   ADMIN
   NURSING_ADMIN
+  BILLING
   PATIENT
+  MANAGEMENT
 }
 
 // Nurse duty/shift tracking

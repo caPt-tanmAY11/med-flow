@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { billServiceByTariff, addBillItem, getTariffByCode } from '@/lib/billing';
 
 // GET: Fetch Active Emergency Patients AND Stats
 export async function GET(request: NextRequest) {
@@ -139,6 +140,19 @@ export async function POST(request: NextRequest) {
                 return encounter;
             });
 
+            // 📊 Auto-Billing: Charge Emergency Registration Fee
+            try {
+                await billServiceByTariff(result.patientId, result.id, 'EMG-REG');
+                // If critical (RED), also add triage assessment charge
+                if (triageColor === 'RED') {
+                    await billServiceByTariff(result.patientId, result.id, 'EMG-CRITICAL');
+                } else if (triageColor) {
+                    await billServiceByTariff(result.patientId, result.id, 'EMG-TRIAGE');
+                }
+            } catch (billingError) {
+                console.warn('Emergency billing failed (non-blocking):', billingError);
+            }
+
             return NextResponse.json({ message: 'Patient registered', data: result }, { status: 201 });
         }
 
@@ -194,6 +208,25 @@ export async function POST(request: NextRequest) {
                     authorRole: 'NURSE'
                 }
             });
+
+            // 📊 Auto-Billing: Add medication cost (lookup from tariff or use manual)
+            try {
+                const medTariff = await getTariffByCode(`PHARM-${medicationName.toUpperCase().replace(/\s+/g, '-')}`);
+                if (medTariff) {
+                    await billServiceByTariff(patientId, encounterId, medTariff.tariffCode);
+                } else {
+                    // Fallback: Add as misc item with estimated price
+                    await addBillItem(patientId, encounterId, {
+                        category: 'PHARMACY',
+                        itemCode: medicationName,
+                        description: `${medicationName} ${dosage} (STAT)`,
+                        quantity: 1,
+                        unitPrice: 50 // Default price if not in tariff
+                    });
+                }
+            } catch (billingError) {
+                console.warn('Medication billing failed (non-blocking):', billingError);
+            }
 
             return NextResponse.json({ message: 'Medication order placed', data: prescription });
         }

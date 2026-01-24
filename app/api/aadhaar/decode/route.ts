@@ -1,81 +1,84 @@
-import { NextResponse } from "next/server";
-import { spawn } from "child_process";
-import path from "path";
 
-export async function POST(req: Request) {
+import { NextRequest, NextResponse } from 'next/server';
+import { spawn } from 'child_process';
+import path from 'path';
+
+// POST /api/aadhaar/decode - Decode Secure QR data using Python script
+export async function POST(request: NextRequest) {
     try {
-        const { qrPayload } = await req.json();
+        const body = await request.json();
+        const { qrPayload } = body;
 
         if (!qrPayload) {
-            return NextResponse.json({ error: "No payload provided" }, { status: 400 });
+            return NextResponse.json({ error: 'QR Payload required' }, { status: 400 });
         }
 
-        // Execute Python script to decode
-        const scriptPath = path.join(process.cwd(), "lib", "decode_aadhaar.py");
+        // We need to determine if this is BigInt (Secure QR) or XML
+        // XML can be handled in JS, but if it is Secure QR (Big Integer string), we use Python decomposer
+        const isSecureQR = /^\d+$/.test(qrPayload) && qrPayload.length > 50;
 
-        return new Promise((resolve) => {
-            const pythonProcess = spawn("python3", [scriptPath]);
+        if (!isSecureQR) {
+            // Let the frontend or shared lib handle simple XML/Text parsing if possible
+            // But since the frontend sent it here, maybe they want unified handling.
+            // For now, if we receive XML, we return it as "pre-parsed" or error
+            // Actually, the frontend calls this for verification primarily.
+            return NextResponse.json({
+                verified: false,
+                error: 'Provided data does not look like Secure QR V2 (Big Integer). Use client-side XML parser?'
+            });
+        }
 
-            let outputData = "";
-            let errorData = "";
+        // Path to python script
+        const scriptPath = path.join(process.cwd(), 'lib/decode_aadhaar.py');
 
-            // Send data to python script via stdin
-            pythonProcess.stdin.write(qrPayload);
-            pythonProcess.stdin.end();
+        // Execute Python
+        // We try 'python' first, as 'py' is Windows launcher specific but 'python' is more universal if in PATH
+        // The user complained "py not found", so likely they have python installed but not the 'py' launcher
+        // OR they might alias it as python3.
 
-            pythonProcess.stdout.on("data", (data) => {
-                outputData += data.toString();
+        // We'll try to find a working python command or just use 'python'
+        const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+
+        return new Promise<Response>((resolve) => {
+            const pyProcess = spawn(pythonCommand, [scriptPath, qrPayload]);
+
+            let output = '';
+            let errorOutput = '';
+
+            pyProcess.stdout.on('data', (data) => {
+                output += data.toString();
             });
 
-            pythonProcess.stderr.on("data", (data) => {
-                errorData += data.toString();
+            pyProcess.stderr.on('data', (data) => {
+                errorOutput += data.toString();
             });
 
-            pythonProcess.on("close", (code) => {
+            pyProcess.on('close', (code) => {
                 if (code !== 0) {
-                    console.error("Python script error:", errorData);
-                    resolve(NextResponse.json({ error: "Failed to decode Aadhaar data" }, { status: 500 }));
+                    console.error('Python script error:', errorOutput);
+                    resolve(NextResponse.json({ error: 'Decoding failed', details: errorOutput }, { status: 500 }));
                     return;
                 }
 
                 try {
-                    const result = JSON.parse(outputData);
+                    const result = JSON.parse(output);
                     if (result.success) {
-                        // Map pyaadhaar output to our expected format
-                        const data = result.data;
-
-                        // Map Python output to frontend expected format
-                        const identity = {
-                            uid: data.aadhaar_masked || (data.aadhaar_last_4 ? `XXXX XXXX ${data.aadhaar_last_4}` : ""),
-                            name: data.name || "",
-                            dob: data.dob || "",
-                            gender: data.gender || "",
-                            address: data.address || "",
-                            city: data.vtc || data.district || "",
-                            state: data.state || "",
-                            pincode: data.pincode || "",
-                            // Additional fields for debugging/display
-                            reference_id: data.reference_id || "",
-                            care_of: data.care_of || "",
-                            _raw_parts: data._raw_parts || [],
-                        };
-
                         resolve(NextResponse.json({
                             verified: true,
-                            identity
+                            identity: result.data
                         }));
                     } else {
-                        resolve(NextResponse.json({ error: result.error || "Decoding failed" }, { status: 400 }));
+                        resolve(NextResponse.json({ error: result.error || 'Unknown error' }, { status: 400 }));
                     }
                 } catch (e) {
-                    console.error("JSON parse error:", e, outputData);
-                    resolve(NextResponse.json({ error: "Invalid response from decoder" }, { status: 500 }));
+                    console.error('Failed to parse Python output:', output);
+                    resolve(NextResponse.json({ error: 'Invalid response from decoder' }, { status: 500 }));
                 }
             });
         });
 
-    } catch (e: any) {
-        console.error("API Error:", e);
-        return NextResponse.json({ error: e.message || "Internal Server Error" }, { status: 500 });
+    } catch (error) {
+        console.error('API Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
