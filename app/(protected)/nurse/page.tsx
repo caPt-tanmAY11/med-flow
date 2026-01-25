@@ -378,27 +378,27 @@ export default function NursePage() {
                                 <Label className="text-slate-700">Security Code</Label>
                                 <div className="relative group">
                                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400 group-focus-within:text-teal-500 transition-colors" />
-                                    <Input 
-                                        type="password" 
-                                        value={loginCode} 
-                                        onChange={e => setLoginCode(e.target.value)} 
-                                        className="pl-9 h-11 tracking-widest bg-slate-50 border-slate-200 focus:ring-teal-500 focus:border-teal-500" 
-                                        maxLength={4} 
+                                    <Input
+                                        type="password"
+                                        value={loginCode}
+                                        onChange={e => setLoginCode(e.target.value)}
+                                        className="pl-9 h-11 tracking-widest bg-slate-50 border-slate-200 focus:ring-teal-500 focus:border-teal-500"
+                                        maxLength={4}
                                         placeholder="••••"
                                     />
                                 </div>
                             </div>
                         )}
 
-                        <Button 
-                            className="w-full h-11 bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-500/20 rounded-xl transition-all active:scale-[0.98]" 
-                            onClick={handleLogin} 
+                        <Button
+                            className="w-full h-11 bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-500/20 rounded-xl transition-all active:scale-[0.98]"
+                            onClick={handleLogin}
                             disabled={checking || loginCode.length !== 4}
                         >
                             {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Unlock Station'}
                         </Button>
                     </div>
-                    
+
                     <div className="mt-8 pt-6 border-t border-slate-100 text-center">
                         <p className="text-xs text-slate-400">MedFlow Secure Access • Authorized Personnel Only</p>
                     </div>
@@ -414,7 +414,7 @@ export default function NursePage() {
                 <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="bg-gradient-to-br from-blue-600 to-teal-500 w-9 h-9 rounded-lg flex items-center justify-center shadow-md shadow-blue-500/20 text-white">
-                             <Heart className="w-5 h-5 fill-white" />
+                            <Heart className="w-5 h-5 fill-white" />
                         </div>
                         <div>
                             <h1 className="font-bold text-slate-900 leading-tight">Nursing Station</h1>
@@ -427,13 +427,13 @@ export default function NursePage() {
                             <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
                             <span className="text-sm font-medium text-slate-700">System Online</span>
                         </div>
-                        
+
                         <div className="h-6 w-px bg-slate-200" />
-                        
+
                         <div className="flex items-center gap-3">
                             <div className="text-right hidden sm:block">
                                 <p className="text-sm font-bold text-slate-800">{currentNurse?.nurseName}</p>
-                                <p className="text-xs text-slate-500 font-medium">{currentNurse?.shiftType || 'Shift'} • {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                <p className="text-xs text-slate-500 font-medium">{currentNurse?.shiftType || 'Shift'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center border-2 border-white shadow-sm text-teal-700 font-bold">
                                 {currentNurse?.nurseName?.charAt(0)}
@@ -445,7 +445,7 @@ export default function NursePage() {
                     </div>
                 </div>
             </div>
-            
+
             <div className="max-w-[1600px] mx-auto px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Main Patient List Area */}
@@ -453,7 +453,7 @@ export default function NursePage() {
                         <div className="flex justify-between items-end">
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                    <ClipboardList className="w-6 h-6 text-teal-600" /> 
+                                    <ClipboardList className="w-6 h-6 text-teal-600" />
                                     My Assignments
                                     <Badge className="ml-2 bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-100">{myPatients.length}</Badge>
                                 </h2>
@@ -461,10 +461,10 @@ export default function NursePage() {
                             </div>
                             <div className="flex gap-2">
                                 <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50 hover:text-teal-600 border-slate-200"><Calendar className="w-4 h-4 mr-2" /> Shift Schedule</Button>
-                                <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50 hover:text-teal-600 border-slate-200"><LayoutGrid className="w-4 h-4 mr-2" /> View All Beds</Button>
+                                <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50 hover:text-teal-600 border-slate-200" onClick={() => router.push('/beds')}><LayoutGrid className="w-4 h-4 mr-2" /> View All Beds</Button>
                             </div>
                         </div>
-                        
+
                         {myPatients.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-20 border-2 border-dashed border-slate-200 rounded-3xl bg-white/50 text-slate-400">
                                 <Users className="w-16 h-16 mb-4 text-slate-200" />
@@ -473,106 +473,106 @@ export default function NursePage() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {myPatients.map(patient => (
-                                <div key={patient.id} className="group bg-white border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
-                                    {/* Card Header with Bed & Status */}
-                                    <div className="p-5 flex justify-between items-start bg-gradient-to-b from-slate-50/50 to-transparent">
-                                        <div className="flex gap-4">
-                                            <div className="relative">
-                                                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
-                                                    {patient.patient.name.charAt(0)}
+                                {myPatients.map(patient => (
+                                    <div key={patient.id} className="group bg-white border border-slate-200/60 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+                                        {/* Card Header with Bed & Status */}
+                                        <div className="p-5 flex justify-between items-start bg-gradient-to-b from-slate-50/50 to-transparent">
+                                            <div className="flex gap-4">
+                                                <div className="relative">
+                                                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+                                                        {patient.patient.name.charAt(0)}
+                                                    </div>
+                                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" title="Stable" />
                                                 </div>
-                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" title="Stable" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-lg text-slate-900 line-clamp-1">{patient.patient.name}</h3>
-                                                <p className="text-xs font-mono text-slate-500 mb-1">{patient.patient.uhid}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200 font-medium px-2 py-0 h-5 text-[10px]">
-                                                        {patient.patient.gender} • {new Date().getFullYear() - new Date(patient.patient.dob).getFullYear()}y
-                                                    </Badge>
-                                                    <Badge variant="outline" className="bg-white text-blue-600 border-blue-200 font-bold px-2 py-0 h-5 text-[10px]">
-                                                        BED {patient.bedAssignments[0]?.bed.bedNumber || 'N/A'}
-                                                    </Badge>
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-slate-900 line-clamp-1">{patient.patient.name}</h3>
+                                                    <p className="text-xs font-mono text-slate-500 mb-1">{patient.patient.uhid}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200 font-medium px-2 py-0 h-5 text-[10px]">
+                                                            {patient.patient.gender} • {new Date().getFullYear() - new Date(patient.patient.dob).getFullYear()}y
+                                                        </Badge>
+                                                        <Badge variant="outline" className="bg-white text-blue-600 border-blue-200 font-bold px-2 py-0 h-5 text-[10px]">
+                                                            BED {patient.bedAssignments[0]?.bed.bedNumber || 'N/A'}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+                                                <MoreHorizontal className="w-5 h-5" />
+                                            </Button>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
-                                            <MoreHorizontal className="w-5 h-5" />
-                                        </Button>
-                                    </div>
 
-                                    {/* Quick Stats Grid */}
-                                    <div className="grid grid-cols-3 divide-x divide-slate-100 border-y border-slate-100 bg-slate-50/50">
-                                        <div className="p-3 text-center">
-                                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">BP</span>
-                                            <span className={cn("font-mono font-semibold text-sm", isAbnormal('bp', patient.vitalSigns[0]?.bpSystolic) ? "text-red-600" : "text-slate-700")}>
-                                                {patient.vitalSigns[0]?.bpSystolic || '--'}/{patient.vitalSigns[0]?.bpDiastolic || '--'}
-                                            </span>
+                                        {/* Quick Stats Grid */}
+                                        <div className="grid grid-cols-3 divide-x divide-slate-100 border-y border-slate-100 bg-slate-50/50">
+                                            <div className="p-3 text-center">
+                                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">BP</span>
+                                                <span className={cn("font-mono font-semibold text-sm", isAbnormal('bp', patient.vitalSigns[0]?.bpSystolic) ? "text-red-600" : "text-slate-700")}>
+                                                    {patient.vitalSigns[0]?.bpSystolic || '--'}/{patient.vitalSigns[0]?.bpDiastolic || '--'}
+                                                </span>
+                                            </div>
+                                            <div className="p-3 text-center">
+                                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">HR</span>
+                                                <span className="font-mono font-semibold text-sm text-slate-700">
+                                                    {patient.vitalSigns[0]?.heartRate || '--'} <span className="text-[10px] text-slate-400">bpm</span>
+                                                </span>
+                                            </div>
+                                            <div className="p-3 text-center">
+                                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Temp</span>
+                                                <span className={cn("font-mono font-semibold text-sm", isAbnormal('temp', patient.vitalSigns[0]?.temperature) ? "text-red-600" : "text-slate-700")}>
+                                                    {patient.vitalSigns[0]?.temperature || '--'}°c
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="p-3 text-center">
-                                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">HR</span>
-                                            <span className="font-mono font-semibold text-sm text-slate-700">
-                                                {patient.vitalSigns[0]?.heartRate || '--'} <span className="text-[10px] text-slate-400">bpm</span>
-                                            </span>
-                                        </div>
-                                        <div className="p-3 text-center">
-                                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Temp</span>
-                                            <span className={cn("font-mono font-semibold text-sm", isAbnormal('temp', patient.vitalSigns[0]?.temperature) ? "text-red-600" : "text-slate-700")}>
-                                                {patient.vitalSigns[0]?.temperature || '--'}°c
-                                            </span>
-                                        </div>
-                                    </div>
 
-                                    {/* Action Buttons */}
-                                    <div className="p-4 grid grid-cols-2 gap-2 mt-auto">
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="w-full justify-start text-slate-600 hover:text-teal-600 hover:bg-teal-50 hover:border-teal-200 transition-all font-medium"
-                                            onClick={() => { setSelectedPatient(patient); setShowVitalsModal(true); }}
-                                        >
-                                            <Activity className="w-4 h-4 mr-2" /> Log Vitals
-                                        </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="w-full justify-start text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all font-medium"
-                                            onClick={() => { setSelectedPatient(patient); setShowMedsModal(true); }}
-                                        >
-                                            <Pill className="w-4 h-4 mr-2" /> Meds
-                                        </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="w-full justify-start text-slate-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all font-medium"
-                                            onClick={() => { setSelectedPatient(patient); setShowLabsModal(true); }}
-                                        >
-                                            <FlaskConical className="w-4 h-4 mr-2" /> Labs
-                                        </Button>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
-                                            className="w-full justify-start text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all font-medium"
-                                            onClick={() => { 
-                                                setSelectedPatient(patient); 
-                                                setShowNotesModal(true); 
-                                            }}
-                                        >
-                                            <FileText className="w-4 h-4 mr-2" /> History
-                                        </Button>
+                                        {/* Action Buttons */}
+                                        <div className="p-4 grid grid-cols-2 gap-2 mt-auto">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full justify-start text-slate-600 hover:text-teal-600 hover:bg-teal-50 hover:border-teal-200 transition-all font-medium"
+                                                onClick={() => { setSelectedPatient(patient); setShowVitalsModal(true); }}
+                                            >
+                                                <Activity className="w-4 h-4 mr-2" /> Log Vitals
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full justify-start text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all font-medium"
+                                                onClick={() => { setSelectedPatient(patient); setShowMedsModal(true); }}
+                                            >
+                                                <Pill className="w-4 h-4 mr-2" /> Meds
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full justify-start text-slate-600 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-all font-medium"
+                                                onClick={() => { setSelectedPatient(patient); setShowLabsModal(true); }}
+                                            >
+                                                <FlaskConical className="w-4 h-4 mr-2" /> Labs
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full justify-start text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-all font-medium"
+                                                onClick={() => {
+                                                    setSelectedPatient(patient);
+                                                    setShowNotesModal(true);
+                                                }}
+                                            >
+                                                <FileText className="w-4 h-4 mr-2" /> History
+                                            </Button>
+                                        </div>
+                                        <div className="px-4 pb-4">
+                                            <Button
+                                                className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200 hover:shadow-xl transition-all h-9"
+                                                size="sm"
+                                                onClick={() => { setSelectedPatient(patient); setShowNurseNoteModal(true); }}
+                                            >
+                                                <PenTool className="w-3.5 h-3.5 mr-2" /> Add Clinical Note
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div className="px-4 pb-4">
-                                        <Button 
-                                            className="w-full bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200 hover:shadow-xl transition-all h-9"
-                                            size="sm"
-                                            onClick={() => { setSelectedPatient(patient); setShowNurseNoteModal(true); }}
-                                        >
-                                            <PenTool className="w-3.5 h-3.5 mr-2" /> Add Clinical Note
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
                             </div>
                         )}
                     </div>
