@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const where: {
             status?: string | { in: string[] };
             priority?: 'STAT' | 'URGENT' | 'ROUTINE';
-            test?: { type: string };
+            LabTest?: { type: string };
         } = {};
 
         if (status === 'all') {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (priority) where.priority = priority as 'STAT' | 'URGENT' | 'ROUTINE';
-        if (type) where.test = { type };
+        if (type) where.LabTest = { type };
 
         const [requests, total, stats] = await Promise.all([
             prisma.labTestOrder.findMany({
@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
                 skip: (page - 1) * limit,
                 take: limit,
                 include: {
-                    test: {
+                    LabTest: {
                         include: {
-                            resultFields: {
+                            LabTestResultField: {
                                 orderBy: { sortOrder: 'asc' },
                             },
                         },
                     },
-                    patient: {
+                    Patient: {
                         select: {
                             id: true,
                             uhid: true,
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
                                     reaction: true,
                                 },
                             },
-                            implants: true,
+                            PatientImplant: true,
                         },
                     },
                 },
@@ -77,12 +77,12 @@ export async function GET(request: NextRequest) {
         const formattedRequests = requests.map(req => ({
             ...req,
             safetyAlerts: {
-                hasAllergies: req.hasAllergies || req.patient.allergies.length > 0,
-                allergies: req.patient.allergies,
-                hasImplants: req.hasImplants || req.patient.implants.length > 0,
-                implants: req.patient.implants,
-                isRadiology: req.test.type === 'RADIOLOGY',
-                requiresMRISafetyCheck: req.test.code.includes('MRI') && (req.hasImplants || req.patient.implants.length > 0),
+                hasAllergies: req.hasAllergies || req.Patient.allergies.length > 0,
+                allergies: req.Patient.allergies,
+                hasImplants: req.hasImplants || req.Patient.PatientImplant.length > 0,
+                implants: req.Patient.PatientImplant,
+                isRadiology: req.LabTest.type === 'RADIOLOGY',
+                requiresMRISafetyCheck: req.LabTest.code.includes('MRI') && (req.hasImplants || req.Patient.PatientImplant.length > 0),
             },
         }));
 
@@ -128,8 +128,8 @@ export async function PATCH(request: NextRequest) {
             where: { id: orderId },
             data: updateData,
             include: {
-                test: true,
-                patient: {
+                LabTest: true,
+                Patient: {
                     select: { uhid: true, name: true },
                 },
             },

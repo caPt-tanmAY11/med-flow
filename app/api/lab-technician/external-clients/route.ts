@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
             where: { isActive: true },
             orderBy: { name: 'asc' },
             include: includeReferrals ? {
-                referrals: {
+                ExternalLabReferral: {
                     orderBy: { receivedAt: 'desc' },
                     take: 10,
                 },
@@ -63,7 +63,10 @@ export async function POST(request: NextRequest) {
         }
 
         const client = await prisma.externalLabClient.create({
-            data,
+            data: {
+                id: crypto.randomUUID(),
+                ...data,
+            },
         });
 
         return NextResponse.json({ data: client }, { status: 201 });
