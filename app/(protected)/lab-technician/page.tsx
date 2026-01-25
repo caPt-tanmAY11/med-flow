@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import JsBarcode from 'jsbarcode';
 import {
     FlaskConical, Search, RefreshCw, AlertTriangle, Clock, CheckCircle,
-    Loader2, FileText, Package, Users, Barcode, X, Heart, AlertCircle,
+    Loader2, FileText, Package, Users, Barcode as BarcodeIcon, X, Heart, AlertCircle,
     Download, ClipboardList, Plus, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,31 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+
+// Visual Barcode Component
+const VisualBarcode = ({ value }: { value: string }) => {
+    const barcodeRef = useRef<SVGSVGElement>(null);
+
+    useEffect(() => {
+        if (barcodeRef.current && value) {
+            try {
+                JsBarcode(barcodeRef.current, value, {
+                    format: "CODE128",
+                    displayValue: true,
+                    fontSize: 16,
+                    margin: 10,
+                    height: 60,
+                    width: 1.5,
+                    textAlign: "center"
+                });
+            } catch (e) {
+                console.error("Barcode rendering error", e);
+            }
+        }
+    }, [value]);
+
+    return <svg ref={barcodeRef} className="max-w-full h-auto" />;
+};
 
 // Types
 interface Patient {
@@ -254,7 +280,7 @@ export default function LabTechnicianPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { key: 'pending', label: 'Pending', icon: Clock, color: 'text-blue-600' },
-                    { key: 'sample_collected', label: 'Collected', icon: Barcode, color: 'text-yellow-600' },
+                    { key: 'sample_collected', label: 'Collected', icon: BarcodeIcon, color: 'text-yellow-600' },
                     { key: 'processing', label: 'Processing', icon: FlaskConical, color: 'text-orange-600' },
                     { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-green-600' },
                 ].map((stat) => (
@@ -373,7 +399,7 @@ export default function LabTechnicianPage() {
                                                             setGeneratedBarcode('');
                                                         }}
                                                     >
-                                                        <Barcode className="w-4 h-4 mr-1" />
+                                                        <BarcodeIcon className="w-4 h-4 mr-1" />
                                                         Barcode
                                                     </Button>
                                                 )}
@@ -593,10 +619,65 @@ export default function LabTechnicianPage() {
                         </div>
 
                         {generatedBarcode ? (
-                            <div className="text-center p-6 bg-muted rounded-lg mb-4">
-                                <Barcode className="w-12 h-12 mx-auto mb-3 text-primary" />
-                                <p className="font-mono text-xl font-bold">{generatedBarcode}</p>
-                                <p className="text-sm text-muted-foreground mt-2">Barcode generated successfully</p>
+                            <div className="space-y-4">
+                                <div className="text-center p-6 bg-white border rounded-lg flex flex-col items-center justify-center">
+                                    <VisualBarcode value={generatedBarcode} />
+                                    <p className="text-sm text-muted-foreground mt-2">Barcode generated successfully</p>
+                                </div>
+                                <Button className="w-full" onClick={() => {
+                                    const printWindow = window.open('', '_blank');
+                                    if (printWindow) {
+                                        printWindow.document.write(`
+                                            <!DOCTYPE html>
+                                            <html>
+                                            <head>
+                                                <title>Check Label - ${generatedBarcode}</title>
+                                                <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+                                                <style>
+                                                    body { font-family: sans-serif; text-align: center; padding: 10px; margin: 0; }
+                                                    .label { border: 1px dashed #000; padding: 10px; display: inline-block; width: 300px; }
+                                                    .meta { font-size: 12px; margin-top: 5px; text-align: left; }
+                                                    @media print {
+                                                        .no-print { display: none; }
+                                                        .label { border: none; }
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body onload="generate()">
+                                                <div class="label">
+                                                    <div class="meta" style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                                                        <strong>${selectedRequest.patient.name}</strong><br>
+                                                        ${selectedRequest.patient.uhid} | ${selectedRequest.test.code}
+                                                    </div>
+                                                    <svg id="barcode"></svg>
+                                                    <div class="meta" style="margin-top: 5px; font-size: 10px;">
+                                                        Sample: ${selectedRequest.test.category} | ${new Date().toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                                <script>
+                                                    function generate() {
+                                                        JsBarcode("#barcode", "${generatedBarcode}", {
+                                                            format: "CODE128",
+                                                            displayValue: true,
+                                                            fontSize: 14,
+                                                            height: 40,
+                                                            width: 1.5,
+                                                            margin: 5
+                                                        });
+                                                        setTimeout(() => window.print(), 500);
+                                                    }
+                                                </script>
+                                            </body>
+                                            </html>
+                                        `);
+                                        printWindow.document.close();
+                                    } else {
+                                        toast({ title: 'Error', description: 'Pop-up blocked', variant: 'destructive' });
+                                    }
+                                }}>
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Print Label
+                                </Button>
                             </div>
                         ) : (
                             <Button className="w-full" onClick={handleGenerateBarcode} disabled={saving}>
@@ -627,7 +708,7 @@ export default function LabTechnicianPage() {
                         {/* Barcode Info */}
                         {selectedRequest.barcode && (
                             <div className="mb-4 p-3 bg-muted rounded-lg flex items-center gap-3">
-                                <Barcode className="w-5 h-5 text-muted-foreground" />
+                                <BarcodeIcon className="w-5 h-5 text-muted-foreground" />
                                 <span className="font-mono">{selectedRequest.barcode}</span>
                             </div>
                         )}
