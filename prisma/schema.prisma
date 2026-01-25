@@ -50,12 +50,11 @@ model user {
   updatedAt     DateTime
   role          ROLE       @default(DOCTOR)
   uhid          String?    @unique
-  department    String?
+  department    DEPARTMENT?
   userRoles     UserRole[]
   account       account[]
   session       session[]
   opdQueues     OPDQueue[]
-
 }
 
 model verification {
@@ -1801,6 +1800,16 @@ enum ROLE {
   PHARMACIST
   BILLING
   MANAGEMENT
+}
+
+enum DEPARTMENT {
+  GENERAL_MEDICINE
+  CARDIOLOGY
+  ORTHOPEDICS
+  PEDIATRICS
+  DERMATOLOGY
+  GYNECOLOGY
+  ENT
 }
 
 model SocialHistory {
