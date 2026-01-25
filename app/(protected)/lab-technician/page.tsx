@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import JsBarcode from 'jsbarcode';
 import {
     FlaskConical, Search, RefreshCw, AlertTriangle, Clock, CheckCircle,
@@ -573,9 +574,10 @@ export default function LabTechnicianPage() {
             )}
 
             {/* Barcode Modal */}
-            {showBarcodeModal && selectedRequest && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-xl max-w-md w-full p-6">
+            {/* Barcode Modal */}
+            {showBarcodeModal && selectedRequest && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200" onClick={() => { setShowBarcodeModal(false); setSelectedRequest(null); }}>
+                    <div className="bg-background rounded-xl max-w-md w-full p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-lg font-semibold">Generate Barcode</h2>
                             <Button variant="ghost" size="sm" onClick={() => { setShowBarcodeModal(false); setSelectedRequest(null); }}>
@@ -686,7 +688,8 @@ export default function LabTechnicianPage() {
                             </Button>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Result Entry Modal */}

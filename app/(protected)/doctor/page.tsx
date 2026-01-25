@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Stethoscope, UserPlus, Pill, FlaskConical, FileText, Plus, X, Loader2, Search, AlertTriangle, Clock, BedDouble, Calendar, ClipboardList, Eye, Upload, Image as ImageIcon, CalendarDays, Filter, ArrowUpDown, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, FileImage, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -841,9 +842,10 @@ export default function DoctorPage() {
             )}
 
             {/* Day Detail Modal for Appointments */}
-            {selectedDayForAppointments && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            {/* Day Detail Modal for Appointments */}
+            {selectedDayForAppointments && createPortal(
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200" onClick={() => setSelectedDayForAppointments(null)}>
+                    <div className="bg-background rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -869,7 +871,7 @@ export default function DoctorPage() {
                                 {getAppointmentsForDay(selectedDayForAppointments)
                                     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
                                     .map(apt => (
-                                        <div key={apt.id} className={cn("p-4 border rounded-lg", isToday(selectedDayForAppointments) && apt.status === 'scheduled' && "border-primary")}>
+                                        <div key={apt.id} className={cn("p-4 border rounded-lg transition-colors hover:bg-muted/30", isToday(selectedDayForAppointments) && apt.status === 'scheduled' && "border-primary")}>
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
@@ -917,7 +919,8 @@ export default function DoctorPage() {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
