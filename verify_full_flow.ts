@@ -38,17 +38,17 @@ async function verifyFullFlow() {
         await new Promise(r => setTimeout(r, 2000)); // Wait for async auth creation
         const uhidLast6 = uhid.slice(-6);
         const email = `${uhidLast6}@medflow.com`;
-        
+
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
             throw new Error(`User account not found for email: ${email}`);
         }
         console.log(`   -> User account verified: ${user.email} (UHID: ${user.uhid})`);
-        
+
         if (user.uhid !== uhid) {
-             throw new Error(`Mismatch! User UHID (${user.uhid}) does not match Patient UHID (${uhid})`);
+            throw new Error(`Mismatch! User UHID (${user.uhid}) does not match Patient UHID (${uhid})`);
         }
-        
+
         // 3. Create Admission (IPD) Data
         console.log("\n2. Simulating IPD Admission...");
         const bedNum = `BED-${randomSuffix}`;

@@ -382,10 +382,12 @@ async function main() {
 
             const paidAmount = billNum % 3 === 0 ? subtotal : billNum % 3 === 1 ? subtotal * 0.5 : 0;
 
+            const encounter = createdEncounters[billNum % createdEncounters.length];
             const bill = await prisma.bill.create({
                 data: {
                     billNumber,
                     patientId: patient.id,
+                    encounterId: encounter.id,
                     status: paidAmount === subtotal ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
                     subtotal,
                     totalAmount: subtotal,

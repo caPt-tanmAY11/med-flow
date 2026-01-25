@@ -50,6 +50,12 @@ export const navigationConfig: NavGroup[] = [
                 icon: Bed,
                 roles: ['PATIENT'],
             },
+            {
+                title: 'EMR Record',
+                href: '/patient/emr',
+                icon: Activity,
+                roles: ['PATIENT'],
+            },
         ]
     },
     {

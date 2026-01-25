@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         const venvPython = path.join(process.cwd(), "venv", "bin", "python3");
         const pythonCmd = venvPython; // Using venv python for PaddleOCR
 
-        return new Promise((resolve) => {
+        return new Promise<NextResponse>((resolve) => {
             const pythonProcess = spawn(pythonCmd, [scriptPath]);
 
             let outputData = "";

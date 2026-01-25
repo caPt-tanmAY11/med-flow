@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
+
 
 const formatDateTime = (dateStr: string) => {
     if (!dateStr) return '-';
@@ -68,6 +70,8 @@ export default function NursePage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
 
+    const router = useRouter();
+
     // Auth & Lock State
     const [currentNurse, setCurrentNurse] = useState<NurseDuty | null>(null);
     const [selectedNurseId, setSelectedNurseId] = useState<string>('');
@@ -77,7 +81,7 @@ export default function NursePage() {
     // Data State
     const [activePatients, setActivePatients] = useState<ActivePatient[]>([]);
     const [nursesOnDuty, setNursesOnDuty] = useState<NurseDuty[]>([]);
-    
+
     // EMR Data State
     const [emrTimeline, setEmrTimeline] = useState<MedicalHistoryEvent[]>([]);
     const [emrVitals, setEmrVitals] = useState<any[]>([]);
@@ -395,7 +399,14 @@ export default function NursePage() {
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => { setSelectedPatient(patient); setShowNotesModal(true); }}>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setSelectedPatient(patient); // optional
+                                                router.push("/patient/emr");
+                                            }}
+                                        >
                                             <FileText className="w-4 h-4 mr-1" /> EMR
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => { setSelectedPatient(patient); setShowLabsModal(true); }}>
@@ -508,10 +519,10 @@ export default function NursePage() {
                                 <h3 className="text-lg font-bold flex items-center gap-2 text-violet-800">
                                     <Sparkles className="w-5 h-5" /> AI Health Insights
                                 </h3>
-                                <Button 
-                                    onClick={handleAIAnalyze} 
-                                    disabled={analyzing || loadingEMR} 
-                                    size="sm" 
+                                <Button
+                                    onClick={handleAIAnalyze}
+                                    disabled={analyzing || loadingEMR}
+                                    size="sm"
                                     className="bg-violet-600 hover:bg-violet-700 text-white"
                                 >
                                     {analyzing ? (
@@ -556,7 +567,7 @@ export default function NursePage() {
                                     </div>
                                 </div>
                             )}
-                            
+
                             {!aiAnalysis && !analyzing && (
                                 <p className="text-sm text-violet-600/70 italic text-center py-2">
                                     Click analyze to use Gemini AI for detecting trends and risks.
@@ -575,7 +586,7 @@ export default function NursePage() {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                         <XAxis dataKey="date" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
                                         <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
-                                        <RechartsTooltip 
+                                        <RechartsTooltip
                                             contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                             itemStyle={{ fontSize: '12px' }}
                                         />
@@ -594,7 +605,7 @@ export default function NursePage() {
                             <h3 className="text-lg font-bold flex items-center gap-2 mb-4 border-b pb-2">
                                 <Clock className="w-5 h-5" /> Medical Timeline
                             </h3>
-                            
+
                             <div className="relative border-l-2 border-slate-200 ml-3 space-y-8 pl-6 pb-2">
                                 {loadingEMR && (
                                     <div className="flex items-center justify-center py-8">
@@ -606,26 +617,26 @@ export default function NursePage() {
                                 {!loadingEMR && emrTimeline.length === 0 && (
                                     <p className="text-muted-foreground italic pl-4">No medical history found for this patient.</p>
                                 )}
-                                
+
                                 {!loadingEMR && emrTimeline.map((event: MedicalHistoryEvent, index: number) => (
                                     <div key={event.id} className="relative group">
                                         {/* Timeline Dot */}
                                         <div className={cn(
                                             "absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm",
                                             event.type === 'EMERGENCY' ? "bg-red-500" :
-                                            event.type === 'IPD' ? "bg-blue-500" :
-                                            event.type === 'SURGERY' ? "bg-purple-500" :
-                                            "bg-green-500"
+                                                event.type === 'IPD' ? "bg-blue-500" :
+                                                    event.type === 'SURGERY' ? "bg-purple-500" :
+                                                        "bg-green-500"
                                         )}></div>
-                                        
+
                                         <div className="bg-slate-50 rounded-lg border p-4 hover:border-blue-200 hover:shadow-sm transition-all">
                                             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 mb-2">
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant={
-                                                            event.type === 'EMERGENCY' ? 'destructive' : 
-                                                            event.type === 'IPD' ? 'default' : 
-                                                            'secondary'
+                                                            event.type === 'EMERGENCY' ? 'destructive' :
+                                                                event.type === 'IPD' ? 'default' :
+                                                                    'secondary'
                                                         } className="uppercase text-[10px]">
                                                             {event.type}
                                                         </Badge>
@@ -639,14 +650,14 @@ export default function NursePage() {
                                                 {event.documents && (
                                                     <div className="flex gap-2">
                                                         {event.documents.map((doc: string, idx: number) => (
-                                                            <Badge 
-                                                                key={idx} 
-                                                                variant="outline" 
+                                                            <Badge
+                                                                key={idx}
+                                                                variant="outline"
                                                                 className="text-xs gap-1 cursor-pointer hover:bg-slate-100 group/badge pr-1"
                                                             >
-                                                                <FileText className="w-3 h-3" /> 
+                                                                <FileText className="w-3 h-3" />
                                                                 {doc}
-                                                                <div 
+                                                                <div
                                                                     onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                                                                     className="ml-1 p-1 hover:bg-slate-200 rounded-full"
                                                                 >
@@ -657,14 +668,14 @@ export default function NursePage() {
                                                     </div>
                                                 )}
                                             </div>
-                                            
+
                                             {event.diagnosis && (
                                                 <div className="mb-2 bg-white/50 p-2 rounded border border-slate-100">
                                                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Diagnosis</span>
                                                     <p className="font-medium text-slate-800">{event.diagnosis}</p>
                                                 </div>
                                             )}
-                                            
+
                                             <p className="text-sm text-slate-600 leading-relaxed">
                                                 {event.notes}
                                             </p>

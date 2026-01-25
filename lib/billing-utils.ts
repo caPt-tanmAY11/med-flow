@@ -39,7 +39,7 @@ async function getOrCreateBill(encounterId: string, patientId: string) {
             data: {
                 billNumber,
                 patientId,
-                encounterId, // Link to the first encounter that created this bill
+                encounterId: encounterId, // Link to the first encounter that created this bill
                 status: 'pending',
                 subtotal: 0,
                 totalAmount: 0,
