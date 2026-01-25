@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
         const order = await prisma.labTestOrder.findUnique({
             where: { id: orderId },
             include: {
-                test: true,
-                patient: {
+                LabTest: true,
+                Patient: {
                     select: { uhid: true },
                 },
             },
@@ -86,13 +86,13 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const labCode = order.test.type === 'RADIOLOGY' ? 'RAD' : 'LAB';
+        const labCode = order.LabTest.type === 'RADIOLOGY' ? 'RAD' : 'LAB';
 
         // Generate barcode using Python script
         const barcodeResult = await generateBarcodeWithPython(
             labCode,
-            order.patient.uhid,
-            order.test.code,
+            order.Patient.uhid,
+            order.LabTest.code,
             todayCount + 1
         );
 
@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
                 status: order.status === 'pending' ? 'sample_collected' : order.status,
             },
             include: {
-                test: true,
-                patient: {
+                LabTest: true,
+                Patient: {
                     select: { uhid: true, name: true },
                 },
             },
@@ -139,14 +139,14 @@ export async function GET(request: NextRequest) {
         const order = await prisma.labTestOrder.findUnique({
             where: { barcode },
             include: {
-                test: {
+                LabTest: {
                     include: {
-                        resultFields: {
+                        LabTestResultField: {
                             orderBy: { sortOrder: 'asc' },
                         },
                     },
                 },
-                patient: {
+                Patient: {
                     select: {
                         id: true,
                         uhid: true,
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
                         allergies: {
                             where: { isActive: true },
                         },
-                        implants: true,
+                        PatientImplant: true,
                     },
                 },
             },

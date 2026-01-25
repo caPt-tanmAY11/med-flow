@@ -17,7 +17,8 @@ import {
     FileText,
     BarChart3,
     LucideIcon,
-    Wallet
+    Wallet,
+    CalendarDays
 } from 'lucide-react';
 import { UserRole } from '@/context/AuthContext';
 
@@ -113,7 +114,7 @@ export const navigationConfig: NavGroup[] = [
                 title: 'Patient List',
                 href: '/patients',
                 icon: Users,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'LAB_PERSON', 'PHARMACIST', 'BILLING', 'NURSING_ADMIN'],
+                roles: ['ADMIN', 'NURSE', 'FRONT_DESK', 'LAB_PERSON', 'PHARMACIST', 'BILLING', 'NURSING_ADMIN'],
             },
             {
                 title: 'OPD Queue',
@@ -127,9 +128,21 @@ export const navigationConfig: NavGroup[] = [
         title: 'ClinicFlow',
         items: [
             {
-                title: 'Doctor Workstation',
-                href: '/doctor',
+                title: 'OPD Dashboard',
+                href: '/doctor/opd',
                 icon: Stethoscope,
+                roles: ['ADMIN', 'DOCTOR'],
+            },
+            {
+                title: 'IPD Rounds',
+                href: '/doctor/ipd',
+                icon: Bed,
+                roles: ['ADMIN', 'DOCTOR'],
+            },
+            {
+                title: 'My Schedule',
+                href: '/doctor',
+                icon: CalendarDays,
                 roles: ['ADMIN', 'DOCTOR'],
             },
             {
@@ -142,7 +155,7 @@ export const navigationConfig: NavGroup[] = [
                 title: 'Emergency',
                 href: '/emergency',
                 icon: Ambulance,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN'],
+                roles: ['ADMIN', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN'],
                 badge: '!',
                 badgeType: 'critical',
             },
