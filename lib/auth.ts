@@ -12,6 +12,10 @@ export const auth = betterAuth({
             role: {
                 type: "string",
                 required: true
+            },
+            uhid: {
+                type: "string",
+                required: false
             }
         }
     },

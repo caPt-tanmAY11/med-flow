@@ -240,7 +240,8 @@ export async function POST(request: NextRequest) {
                     email: patientEmail,
                     password: patientPassword,
                     name: data.name,
-                    role: "PATIENT"
+                    role: "PATIENT",
+                    uhid: uhid // Pass the generated UHID to be stored in the User table
                 }
             });
             console.log(`Created user account for patient ${uhid} with email ${patientEmail}`);
