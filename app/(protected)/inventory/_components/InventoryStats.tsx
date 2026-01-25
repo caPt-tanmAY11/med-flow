@@ -25,7 +25,7 @@ export function InventoryStatsCards({ stats }: { stats: InventoryStats }) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${stats.totalValue.toLocaleString()}
+            ₹{stats.totalValue.toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">
             Approximate stock value
