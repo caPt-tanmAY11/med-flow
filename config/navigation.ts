@@ -16,7 +16,8 @@ import {
     Ambulance,
     FileText,
     BarChart3,
-    LucideIcon
+    LucideIcon,
+    Wallet
 } from 'lucide-react';
 import { UserRole } from '@/context/AuthContext';
 
@@ -201,6 +202,12 @@ export const navigationConfig: NavGroup[] = [
     {
         title: 'Finance',
         items: [
+            {
+                title: 'My Bills',
+                href: '/paisatracker-patient',
+                icon: Wallet,
+                roles: ['PATIENT', 'ADMIN'],
+            },
             {
                 title: 'PaisaTracker',
                 href: '/billing',
