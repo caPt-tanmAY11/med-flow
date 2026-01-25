@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, Upload, X, Loader2, QrCode, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseAadhaarQR, AadhaarQRData } from '@/lib/aadhaar-qr';
+import { AadhaarQRData } from '@/lib/aadhaar-qr';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 interface QRScannerProps {
@@ -14,9 +15,17 @@ interface QRScannerProps {
 export default function QRScanner({ onScan, onClose }: QRScannerProps) {
     const [mode, setMode] = useState<'select' | 'scanning' | 'processing'>('select');
     const [error, setError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const controlsRef = useRef<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => {
+            stopScanner();
+        };
+    }, []);
 
     const startScanner = async () => {
         setError(null);
@@ -245,16 +254,11 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         onClose();
     };
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            stopScanner();
-        };
-    }, []);
+    if (!mounted) return null;
 
-    return (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-            <div className="bg-background rounded-xl max-w-lg w-full overflow-hidden">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
+            <div className="bg-background rounded-xl max-w-lg w-full overflow-hidden shadow-2xl scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b">
                     <div className="flex items-center gap-2">
@@ -348,6 +352,7 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                     </p>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
