@@ -37,35 +37,22 @@ export default function PatientDashboard() {
                     </Card>
                 </Link>
 
-                <Card className="opacity-60">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <CalendarDays className="w-5 h-5" />
-                            Appointments
-                        </CardTitle>
-                        <CardDescription>
-                            Upcoming OPD visits and consultations.
-                        </CardDescription>
-                    </CardHeader>
-                     <CardContent>
-                        <div className="text-sm">Coming Soon</div>
-                    </CardContent>
-                </Card>
-
-                 <Card className="opacity-60">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <HeartPulse className="w-5 h-5" />
-                            Vitals History
-                        </CardTitle>
-                        <CardDescription>
-                            Track your health metrics over time.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-sm">Coming Soon</div>
-                    </CardContent>
-                </Card>
+                <Link href="/patient/emr" className="block group">
+                    <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 group-hover:text-primary transition-colors">
+                                <HeartPulse className="w-5 h-5" />
+                                EMR
+                            </CardTitle>
+                            <CardDescription>
+                                Track your health metrics over time.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="text-sm font-medium text-primary">Check status →</div>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
         </div>
     );
