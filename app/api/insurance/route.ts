@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
                 include: {
                     bill: { select: { billNumber: true, totalAmount: true } },
                     policy: { select: { insurerName: true, policyNumber: true } },
+                    tpa: { select: { name: true } },
                 },
             });
             return NextResponse.json({ data: claims });
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
                     billId: data.billId,
                     policyId: data.policyId,
                     claimAmount: data.claimAmount,
+                    tpaId: data.tpaId, // [NEW] Link TPA
                     documents: data.documents || [],
                 },
             });

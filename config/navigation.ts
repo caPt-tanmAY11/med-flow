@@ -69,6 +69,12 @@ export const navigationConfig: NavGroup[] = [
                 icon: Activity,
                 roles: ['PATIENT'],
             },
+            {
+                title: 'My Insurance',
+                href: '/patient/insurance',
+                icon: Shield,
+                roles: ['PATIENT', 'ADMIN'],
+            },
         ]
     },
     {
@@ -226,6 +232,12 @@ export const navigationConfig: NavGroup[] = [
                 icon: Shield,
                 roles: ['ADMIN', 'BILLING'],
             },
+            {
+                title: 'Claims Processing',
+                href: '/hospital/claims',
+                icon: FileText,
+                roles: ['ADMIN', 'BILLING', 'MANAGEMENT'],
+            },
         ],
     },
     {
@@ -265,6 +277,12 @@ export const navigationConfig: NavGroup[] = [
                 href: '/management',
                 icon: BarChart3,
                 roles: ['ADMIN', 'MANAGEMENT'],
+            },
+            {
+                title: 'TPA Dashboard',
+                href: '/tpa/dashboard',
+                icon: Shield,
+                roles: ['TPA', 'ADMIN'],
             },
         ],
     },

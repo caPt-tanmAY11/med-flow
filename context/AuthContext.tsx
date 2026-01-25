@@ -14,7 +14,8 @@ export type UserRole =
     | 'BILLING'
     | 'MANAGEMENT'
     | 'NURSING_ADMIN'
-    | 'PATIENT';
+    | 'PATIENT'
+    | 'TPA';
 
 export interface User {
     id: string;
@@ -44,6 +45,7 @@ export const roleNames: Record<UserRole, string> = {
     MANAGEMENT: 'Management',
     NURSING_ADMIN: 'Nursing Admin',
     PATIENT: 'Patient',
+    TPA: 'TPA',
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
