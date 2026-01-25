@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
             });
 
             if (availableBeds.length === 0) {
-                 return NextResponse.json(
+                return NextResponse.json(
                     { error: `No beds available in ${data.ward}. Please select a different ward.` },
                     { status: 400 }
                 );
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
 
         // If a bed was selected, assign it and update status
         if (selectedBedId) {
-             await prisma.$transaction([
+            await prisma.$transaction([
                 prisma.bed.update({
                     where: { id: selectedBedId },
                     data: { status: 'OCCUPIED' }
@@ -224,9 +224,39 @@ export async function POST(request: NextRequest) {
                         patientId: patient.id,
                     },
                 });
+
+                // Add to OPD Queue if type is OPD
+                if (data.type === 'OPD') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    const lastEntry = await (prisma as any).oPDQueue.findFirst({
+                        where: {
+                            doctorId: data.primaryDoctorId,
+                            createdAt: {
+                                gte: today
+                            }
+                        },
+                        orderBy: {
+                            tokenNumber: 'desc'
+                        }
+                    });
+
+                    const newTokenNumber = (lastEntry?.tokenNumber || 0) + 1;
+
+                    await (prisma as any).oPDQueue.create({
+                        data: {
+                            patientId: data.patientId,
+                            doctorId: data.primaryDoctorId,
+                            tokenNumber: newTokenNumber,
+                            status: 'WAITING'
+                        }
+                    });
+                }
+
             } catch (error) {
-                console.error('Failed to create notification for doctor:', error);
-                // Don't fail the request if notification fails
+                console.error('Failed to create notification or queue entry:', error);
+                // Don't fail the request if notification/queue fails
             }
         }
 

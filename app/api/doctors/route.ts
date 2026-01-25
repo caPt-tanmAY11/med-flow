@@ -12,6 +12,7 @@ export async function GET() {
                 id: true,
                 name: true,
                 email: true,
+                department: true,
             },
             orderBy: {
                 name: 'asc',

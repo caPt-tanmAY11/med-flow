@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-// GET: Fetch vitals for an encounter
+// GET: Fetch notes for an encounter
 export async function GET(req: Request) {
     try {
         const session = await auth.api.getSession({ headers: req.headers });
@@ -17,19 +17,19 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Missing encounterId" }, { status: 400 });
         }
 
-        const vitals = await prisma.vitalSign.findMany({
+        const notes = await prisma.clinicalNote.findMany({
             where: { encounterId },
-            orderBy: { recordedAt: 'desc' }
+            orderBy: { createdAt: 'desc' }
         });
 
-        return NextResponse.json(vitals);
+        return NextResponse.json(notes);
     } catch (error) {
-        console.error("Error fetching vitals:", error);
+        console.error("Error fetching notes:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
 
-// POST: Create new vital signs record
+// POST: Create new clinical note
 export async function POST(req: Request) {
     try {
         const session = await auth.api.getSession({ headers: req.headers });
@@ -38,29 +38,26 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { encounterId, patientId, temperature, pulse, bpSystolic, bpDiastolic, spO2, respRate } = body;
+        const { encounterId, patientId, noteType, content } = body;
 
-        if (!encounterId || !patientId) {
+        if (!encounterId || !patientId || !content) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const vitalSign = await prisma.vitalSign.create({
+        const note = await prisma.clinicalNote.create({
             data: {
                 encounterId,
                 patientId,
-                recordedBy: session.user.name || "Unknown",
-                temperature: temperature ? parseFloat(temperature) : null,
-                pulse: pulse ? parseInt(pulse) : null,
-                bpSystolic: bpSystolic ? parseInt(bpSystolic) : null,
-                bpDiastolic: bpDiastolic ? parseInt(bpDiastolic) : null,
-                spO2: spO2 ? parseFloat(spO2) : null,
-                respRate: respRate ? parseInt(respRate) : null,
+                noteType: noteType || "general",
+                content,
+                authorId: session.user.id,
+                authorRole: session.user.role || "DOCTOR",
             }
         });
 
-        return NextResponse.json(vitalSign);
+        return NextResponse.json(note);
     } catch (error) {
-        console.error("Error creating vitals:", error);
+        console.error("Error creating note:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

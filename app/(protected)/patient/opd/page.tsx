@@ -21,20 +21,28 @@ export default function PatientOPDPage() {
     const [status, setStatus] = useState<QueueStatus | null>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Mock fetch for now, replace with actual API call
-        // In real app, we'd fetch /api/patient/opd/status
-        setTimeout(() => {
-            setStatus({
-                myToken: 12,
-                currentToken: 5,
-                estimatedWaitTime: 35,
-                doctorName: "Dr. Sarah Smith",
-                department: "Cardiology",
-                status: "WAITING"
-            });
+    const fetchStatus = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch("/api/patient/opd/status");
+            if (res.ok) {
+                const data = await res.json();
+                setStatus(data);
+            } else {
+                setStatus(null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch status", error);
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
+    };
+
+    useEffect(() => {
+        fetchStatus();
+        // Auto refresh every minute
+        const interval = setInterval(fetchStatus, 60000);
+        return () => clearInterval(interval);
     }, []);
 
     if (loading) {
@@ -56,7 +64,13 @@ export default function PatientOPDPage() {
 
     return (
         <div className="p-6 max-w-2xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight">OPD Live Status</h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold tracking-tight">OPD Live Status</h1>
+                <Button variant="outline" size="sm" onClick={fetchStatus} disabled={loading}>
+                    {loading ? <Clock className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+                    Refresh
+                </Button>
+            </div>
 
             {/* Main Status Card */}
             <Card className="border-primary/20 shadow-lg">
