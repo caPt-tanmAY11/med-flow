@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Clock, ArrowRight, Stethoscope, Upload, Image as ImageIcon, FileText, Loader2, X, Search } from "lucide-react";
+import { User, Clock, ArrowRight, Stethoscope, Upload, Image as ImageIcon, FileText, Loader2, X, Search, Download } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCallback } from "react";
+import { downloadPrescriptionPDF } from "@/lib/pdf-utils";
 
 interface QueueItem {
     id: string;
@@ -154,6 +155,29 @@ export default function DoctorOPDPage() {
     const [vitalsForm, setVitalsForm] = useState({ bpSystolic: "", bpDiastolic: "", pulse: "", temperature: "", spO2: "" });
     const [noteContent, setNoteContent] = useState("");
     const [selectedLabTest, setSelectedLabTest] = useState("CBC");
+    const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
+    const [pdfLoading, setPdfLoading] = useState(false);
+
+    const handleDownloadPrescription = async () => {
+        if (!currentPrescriptionId) {
+            toast({ title: 'No Prescription', description: 'Please add at least one medication first', variant: 'destructive' });
+            return;
+        }
+        setPdfLoading(true);
+        try {
+            const success = await downloadPrescriptionPDF(currentPrescriptionId);
+            if (success) {
+                toast({ title: 'Success', description: 'Prescription PDF downloaded' });
+            } else {
+                toast({ title: 'Error', description: 'Failed to generate PDF', variant: 'destructive' });
+            }
+        } catch (error) {
+            console.error('PDF download failed:', error);
+            toast({ title: 'Error', description: 'Failed to download PDF', variant: 'destructive' });
+        } finally {
+            setPdfLoading(false);
+        }
+    };
 
     // Medication autocomplete
     interface MedicationOption {
@@ -272,6 +296,15 @@ export default function DoctorOPDPage() {
             if (res.ok) {
                 toast({ title: 'Success', description: 'Medication added successfully' });
                 setMedicationForm({ name: "", dosage: "", frequency: "", duration: "", route: "oral", instructions: "" });
+
+                // Fetch current prescription ID for PDF download
+                const rxRes = await fetch(`/api/prescriptions?encounterId=${currentPatient.id}`);
+                if (rxRes.ok) {
+                    const rxData = await rxRes.json();
+                    if (rxData?.id) {
+                        setCurrentPrescriptionId(rxData.id);
+                    }
+                }
             }
         } catch (error) {
             console.error("Failed to add medication", error);
@@ -587,7 +620,13 @@ export default function DoctorOPDPage() {
                                                 />
                                             </div>
                                         </div>
-                                        <Button className="w-full" onClick={addMedication}>Add Medication</Button>
+                                        <div className="flex gap-2">
+                                            <Button className="flex-1" onClick={addMedication}>Add Medication</Button>
+                                            <Button variant="outline" onClick={handleDownloadPrescription}>
+                                                <Download className="w-4 h-4 mr-2" />
+                                                Download PDF
+                                            </Button>
+                                        </div>
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="vitals" className="mt-4">
