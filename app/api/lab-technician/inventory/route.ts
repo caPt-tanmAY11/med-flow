@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
 
         const item = await prisma.labInventoryItem.create({
             data: {
+                id: crypto.randomUUID(),
                 ...data,
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
             },

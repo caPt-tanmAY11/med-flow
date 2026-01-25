@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
         const order = await prisma.labTestOrder.findUnique({
             where: { id: orderId },
             include: {
-                test: {
+                LabTest: {
                     include: {
-                        resultFields: {
+                        LabTestResultField: {
                             orderBy: { sortOrder: 'asc' },
                         },
                     },
                 },
-                patient: {
+                Patient: {
                     select: {
                         id: true,
                         uhid: true,
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate age from DOB
-        const dob = new Date(order.patient.dob);
+        const dob = new Date(order.Patient.dob);
         const ageDiff = Date.now() - dob.getTime();
         const ageDate = new Date(ageDiff);
         const age = Math.abs(ageDate.getUTCFullYear() - 1970);
 
         // Format result data with normal ranges and flags
         const resultData = order.resultData as Record<string, unknown>;
-        const formattedResults = order.test.resultFields.map(field => {
+        const formattedResults = order.LabTest.LabTestResultField.map(field => {
             const value = resultData[field.fieldName];
             let status = 'normal';
 
@@ -85,20 +85,20 @@ export async function POST(request: NextRequest) {
                 accreditationNo: 'NABL-XXX-XXXX',
             },
             patient: {
-                name: order.patient.name,
-                uhid: order.patient.uhid,
+                name: order.Patient.name,
+                uhid: order.Patient.uhid,
                 age: `${age} years`,
-                gender: order.patient.gender,
-                contact: order.patient.contact || 'N/A',
+                gender: order.Patient.gender,
+                contact: order.Patient.contact || 'N/A',
             },
             test: {
-                name: order.test.name,
-                code: order.test.code,
-                category: order.test.category,
+                name: order.LabTest.name,
+                code: order.LabTest.code,
+                category: order.LabTest.category,
                 barcode: order.barcode || 'N/A',
             },
             sample: {
-                type: order.test.sampleType || 'N/A',
+                type: order.LabTest.sampleType || 'N/A',
                 collectedAt: order.collectedAt?.toISOString() || 'N/A',
                 collectedBy: order.collectedBy || 'N/A',
             },

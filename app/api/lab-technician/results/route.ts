@@ -23,12 +23,12 @@ export async function POST(request: NextRequest) {
         const order = await prisma.labTestOrder.findUnique({
             where: { id: data.orderId },
             include: {
-                test: {
+                LabTest: {
                     include: {
-                        resultFields: true,
+                        LabTestResultField: true,
                     },
                 },
-                patient: {
+                Patient: {
                     select: { id: true, uhid: true, name: true },
                 },
             },
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Validate required fields are present
-        const requiredFields = order.test.resultFields.filter(f => f.isRequired);
+        const requiredFields = order.LabTest.LabTestResultField.filter(f => f.isRequired);
         const missingFields = requiredFields.filter(f => !(f.fieldName in data.resultData));
 
         if (missingFields.length > 0) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
         // Check for abnormal values
         const abnormalValues: Array<{ field: string; value: number | string; normalRange: string }> = [];
-        for (const field of order.test.resultFields) {
+        for (const field of order.LabTest.LabTestResultField) {
             const value = data.resultData[field.fieldName];
             if (field.fieldType === 'number' && field.normalMin !== null && field.normalMax !== null) {
                 const numValue = parseFloat(value);
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
         // Auto-mark as critical if severely abnormal
         const autoMarkCritical = abnormalValues.some(av => {
-            const field = order.test.resultFields.find(f => f.fieldLabel === av.field);
+            const field = order.LabTest.LabTestResultField.find(f => f.fieldLabel === av.field);
             if (field && field.normalMin !== null && field.normalMax !== null) {
                 const val = av.value as number;
                 const range = field.normalMax - field.normalMin;
@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
                 isCritical,
             },
             include: {
-                test: true,
-                patient: {
+                LabTest: true,
+                Patient: {
                     select: { uhid: true, name: true },
                 },
             },
@@ -105,13 +105,13 @@ export async function POST(request: NextRequest) {
         if (isCritical) {
             await prisma.safetyAlert.create({
                 data: {
-                    patientId: order.patient.id,
+                    patientId: order.Patient.id,
                     alertType: 'critical-lab',
                     severity: 'critical',
-                    message: `Critical lab result for ${order.test.name}`,
+                    message: `Critical lab result for ${order.LabTest.name}`,
                     context: {
                         orderId: order.id,
-                        testName: order.test.name,
+                        testName: order.LabTest.name,
                         abnormalValues,
                     },
                 },
@@ -165,14 +165,14 @@ export async function GET(request: NextRequest) {
         const order = await prisma.labTestOrder.findUnique({
             where: { id: orderId },
             include: {
-                test: {
+                LabTest: {
                     include: {
-                        resultFields: {
+                        LabTestResultField: {
                             orderBy: { sortOrder: 'asc' },
                         },
                     },
                 },
-                patient: {
+                Patient: {
                     select: {
                         id: true,
                         uhid: true,

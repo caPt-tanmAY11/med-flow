@@ -46,7 +46,7 @@ interface Patient {
     gender: string;
     dob: string;
     allergies: Array<{ allergen: string; severity: string; reaction: string | null }>;
-    implants: Array<{ type: string; location: string; mriSafe: boolean | null }>;
+    PatientImplant: Array<{ type: string; location: string; mriSafe: boolean | null }>;
 }
 
 interface LabTest {
@@ -55,7 +55,7 @@ interface LabTest {
     name: string;
     category: string;
     type: string;
-    resultFields: Array<{
+    LabTestResultField: Array<{
         id: string;
         fieldName: string;
         fieldLabel: string;
@@ -82,8 +82,8 @@ interface LabRequest {
     resultedAt: string | null;
     resultData: Record<string, string | number> | null;
     createdAt: string;
-    test: LabTest;
-    patient: Patient;
+    LabTest: LabTest;
+    Patient: Patient;
     safetyAlerts: {
         hasAllergies: boolean;
         allergies: Array<{ allergen: string; severity: string }>;
@@ -185,7 +185,7 @@ export default function LabTechnicianPage() {
         if (!selectedRequest) return;
 
         // Validate required fields
-        const missingFields = (selectedRequest.test.resultFields || [])
+        const missingFields = (selectedRequest.LabTest.LabTestResultField || [])
             .filter(f => f.isRequired && !resultData[f.fieldName])
             .map(f => f.fieldLabel);
 
@@ -251,7 +251,7 @@ export default function LabTechnicianPage() {
     };
 
     // Check if value is abnormal
-    const isAbnormal = (value: string, field: LabRequest['test']['resultFields'][0]) => {
+    const isAbnormal = (value: string, field: LabRequest['LabTest']['LabTestResultField'][0]) => {
         if (field.fieldType !== 'number' || field.normalMin === null || field.normalMax === null) return false;
         const numValue = parseFloat(value);
         return !isNaN(numValue) && (numValue < field.normalMin || numValue > field.normalMax);
@@ -358,12 +358,12 @@ export default function LabTechnicianPage() {
                                             </span>
                                         </td>
                                         <td className="p-3">
-                                            <p className="font-medium text-sm">{req.test.name}</p>
-                                            <p className="text-xs text-muted-foreground">{req.test.code}</p>
+                                            <p className="font-medium text-sm">{req.LabTest.name}</p>
+                                            <p className="text-xs text-muted-foreground">{req.LabTest.code}</p>
                                         </td>
                                         <td className="p-3">
-                                            <p className="text-sm">{req.patient.name}</p>
-                                            <p className="text-xs text-muted-foreground">{req.patient.uhid}</p>
+                                            <p className="text-sm">{req.Patient.name}</p>
+                                            <p className="text-xs text-muted-foreground">{req.Patient.uhid}</p>
                                         </td>
                                         <td className="p-3">
                                             <div className="flex gap-1">
@@ -465,12 +465,12 @@ export default function LabTechnicianPage() {
                                         {requests.filter(r => r.status === 'completed').map((req) => (
                                             <tr key={req.id} className="hover:bg-muted/30 transition-colors">
                                                 <td className="p-3">
-                                                    <p className="font-medium text-sm">{req.test.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{req.test.code}</p>
+                                                    <p className="font-medium text-sm">{req.LabTest.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{req.LabTest.code}</p>
                                                 </td>
                                                 <td className="p-3">
-                                                    <p className="text-sm">{req.patient.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{req.patient.uhid}</p>
+                                                    <p className="text-sm">{req.Patient.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{req.Patient.uhid}</p>
                                                 </td>
                                                 <td className="p-3 font-mono text-sm">{req.barcode || '-'}</td>
                                                 <td className="p-3">
@@ -606,15 +606,15 @@ export default function LabTechnicianPage() {
                         <div className="space-y-3 mb-4">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Test</span>
-                                <span>{selectedRequest.test.name}</span>
+                                <span>{selectedRequest.LabTest.name}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Patient</span>
-                                <span>{selectedRequest.patient.name} ({selectedRequest.patient.uhid})</span>
+                                <span>{selectedRequest.Patient.name} ({selectedRequest.Patient.uhid})</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">Sample Type</span>
-                                <span>{selectedRequest.test.category}</span>
+                                <span>{selectedRequest.LabTest.category}</span>
                             </div>
                         </div>
 
@@ -646,12 +646,12 @@ export default function LabTechnicianPage() {
                                             <body onload="generate()">
                                                 <div class="label">
                                                     <div class="meta" style="margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                                                        <strong>${selectedRequest.patient.name}</strong><br>
-                                                        ${selectedRequest.patient.uhid} | ${selectedRequest.test.code}
+                                                        <strong>${selectedRequest.Patient.name}</strong><br>
+                                                        ${selectedRequest.Patient.uhid} | ${selectedRequest.LabTest.code}
                                                     </div>
                                                     <svg id="barcode"></svg>
                                                     <div class="meta" style="margin-top: 5px; font-size: 10px;">
-                                                        Sample: ${selectedRequest.test.category} | ${new Date().toLocaleDateString()}
+                                                        Sample: ${selectedRequest.LabTest.category} | ${new Date().toLocaleDateString()}
                                                     </div>
                                                 </div>
                                                 <script>
@@ -697,7 +697,7 @@ export default function LabTechnicianPage() {
                             <div>
                                 <h2 className="text-lg font-semibold">Enter Result</h2>
                                 <p className="text-sm text-muted-foreground">
-                                    {selectedRequest.test.name} - {selectedRequest.patient.name}
+                                    {selectedRequest.LabTest.name} - {selectedRequest.Patient.name}
                                 </p>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => { setShowResultModal(false); setSelectedRequest(null); }}>
@@ -715,13 +715,13 @@ export default function LabTechnicianPage() {
 
                         {/* Result Fields */}
                         <div className="space-y-4 mb-6">
-                            {(selectedRequest.test.resultFields?.length ?? 0) === 0 ? (
+                            {(selectedRequest.LabTest.LabTestResultField?.length ?? 0) === 0 ? (
                                 <div className="p-4 bg-muted rounded-lg text-center">
                                     <p className="text-muted-foreground">No result fields defined for this test.</p>
                                     <p className="text-sm">Please contact admin to configure result fields.</p>
                                 </div>
                             ) : (
-                                selectedRequest.test.resultFields?.map((field) => (
+                                selectedRequest.LabTest.LabTestResultField?.map((field) => (
                                     <div key={field.id}>
                                         <Label className="flex items-center gap-2 mb-2">
                                             {field.fieldLabel}
