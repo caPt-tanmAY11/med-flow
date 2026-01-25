@@ -260,6 +260,27 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Create Clinical Note from OCR if provided
+        // We use 'any' cast for body because we haven't updated the Zod schema yet, 
+        // but we want to handle these extra fields.
+        const requestBody = body as any;
+        if (requestBody.extractedText) {
+            try {
+                await prisma.clinicalNote.create({
+                    data: {
+                        encounterId: encounter.id,
+                        patientId: patient.id,
+                        noteType: requestBody.fileType || 'prescription',
+                        content: requestBody.extractedText,
+                        authorId: 'system', // Or current user if we had auth context here
+                        authorRole: 'SYSTEM',
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to create clinical note from OCR:', error);
+            }
+        }
+
         // Return with allergy alerts if any
         return NextResponse.json({
             data: encounter,
