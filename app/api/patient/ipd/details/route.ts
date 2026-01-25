@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
         console.log(`[IPD API] Fetching details for user: ${session.user.email} with UHID: ${userUhid}`);
 
         if (!userUhid) {
-             console.log(`[IPD API] No UHID found for user: ${session.user.email}. Cannot link to patient record.`);
-             return NextResponse.json({ error: 'Patient account not linked to medical record.' }, { status: 404 });
+            console.log(`[IPD API] No UHID found for user: ${session.user.email}. Cannot link to patient record.`);
+            return NextResponse.json({ error: 'Patient account not linked to medical record.' }, { status: 404 });
         }
 
         // Find patient by UHID
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             console.log(`[IPD API] Patient record not found for UHID: ${userUhid}`);
             return NextResponse.json({ error: 'Patient record not found' }, { status: 404 });
         }
-        
+
         console.log(`[IPD API] Found patient: ${patient.uhid} (${patient.id})`);
 
         // Find active IPD encounter
@@ -70,8 +70,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: 'No active IPD admission found' }, { status: 200 });
         }
 
+        let doctorName = null;
+        if (encounter.primaryDoctorId) {
+            const doctor = await prisma.user.findUnique({
+                where: { id: encounter.primaryDoctorId },
+                select: { name: true }
+            });
+            doctorName = doctor?.name || null;
+        }
+
         const bedAssignment = encounter.bedAssignments[0];
-        
+
         return NextResponse.json({
             data: {
                 encounterId: encounter.id,
@@ -81,7 +90,7 @@ export async function GET(request: NextRequest) {
                     ward: bedAssignment.bed.ward,
                     floor: bedAssignment.bed.floor
                 } : null,
-                doctor: encounter.primaryDoctorId
+                doctor: doctorName
             }
         });
 
