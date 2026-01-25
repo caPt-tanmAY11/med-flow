@@ -99,29 +99,19 @@ export const navigationConfig: NavGroup[] = [
                 roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
             },
             {
-                title: 'IPD Admission',
+                title: 'Patient Admission',
                 href: '/registration/ipd',
                 icon: Bed,
                 roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
             },
-            {
-                title: 'Patient Assignment',
-                href: '/patient-assign',
-                icon: UserPlus,
-                roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
-            },
+
             {
                 title: 'Patient List',
                 href: '/patients',
                 icon: Users,
                 roles: ['ADMIN', 'NURSE', 'FRONT_DESK', 'LAB_PERSON', 'PHARMACIST', 'BILLING', 'NURSING_ADMIN'],
             },
-            {
-                title: 'OPD Queue',
-                href: '/opd',
-                icon: Users,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'FRONT_DESK', 'NURSING_ADMIN'],
-            },
+
         ],
     },
     {

@@ -372,6 +372,7 @@ model Encounter {
   type              EncounterType
   status            EncounterStatus      @default(ACTIVE)
   primaryDoctorId   String?
+  secondaryDoctorId String?
   department        String?
   triageColor       TriageColor?
   triageNotes       String?
@@ -403,6 +404,7 @@ model Encounter {
   surgeries         Surgery[]
   transfers         Transfer[]
   vitalSigns        VitalSign[]
+  medicoLegalCase   MedicoLegalCase?
 
   @@index([patientId])
   @@index([status])
@@ -433,6 +435,7 @@ model MedicoLegalCase {
   reportedBy    String
   mlcNotes      String?
   documentsUrl  String[]
+  encounter     Encounter @relation(fields: [encounterId], references: [id])
 
   @@index([encounterId])
 }

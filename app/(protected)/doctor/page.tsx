@@ -258,7 +258,7 @@ export default function DoctorPage() {
         }
     };
 
-    useEffect(() => { fetchEncounters(); }, []);
+    useEffect(() => { fetchAppointments(); }, []);
 
     // Get week days
     const getWeekDays = () => {
@@ -556,118 +556,55 @@ export default function DoctorPage() {
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2"><Stethoscope className="w-6 h-6 text-primary" />Doctor Workstation</h1>
-                    <p className="text-sm text-muted-foreground mt-1">{encounters.length} active patients</p>
+                    <p className="text-sm text-muted-foreground mt-1">Manage your schedule and appointments</p>
                 </div>
-                <Button variant="outline" onClick={toggleAppointments} className="flex items-center gap-2">
-                    <CalendarDays className="w-4 h-4" />My Schedule
-                    {showAppointmentsPanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </Button>
             </div>
 
-            {/* Day-wise Appointments Panel */}
-            {showAppointmentsPanel && (
-                <div className="floating-card">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-medium flex items-center gap-2"><CalendarDays className="w-4 h-4" />Weekly Schedule</h3>
-                        <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => navigateWeek('prev')}><ChevronLeft className="w-4 h-4" /></Button>
-                            <span className="text-sm font-medium">{formatDate(weekDays[0])} - {formatDate(weekDays[6])}</span>
-                            <Button variant="ghost" size="sm" onClick={() => navigateWeek('next')}><ChevronRight className="w-4 h-4" /></Button>
-                        </div>
+            {/* Doctor Schedule */}
+            <div className="floating-card">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-medium flex items-center gap-2"><CalendarDays className="w-4 h-4" />Weekly Schedule</h3>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => navigateWeek('prev')}><ChevronLeft className="w-4 h-4" /></Button>
+                        <span className="text-sm font-medium">{formatDate(weekDays[0])} - {formatDate(weekDays[6])}</span>
+                        <Button variant="ghost" size="sm" onClick={() => navigateWeek('next')}><ChevronRight className="w-4 h-4" /></Button>
                     </div>
-                    {appointmentsLoading ? (
-                        <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-                    ) : (
-                        <div className="grid grid-cols-7 gap-2">
-                            {weekDays.map((day, idx) => {
-                                const dayAppointments = getAppointmentsForDay(day);
-                                return (
-                                    <button
-                                        key={idx}
-                                        onClick={() => setSelectedDayForAppointments(day)}
-                                        className={cn("p-2 rounded-lg border min-h-[120px] text-left hover:bg-muted/50 transition-colors cursor-pointer", isToday(day) ? "border-primary bg-primary/5" : "border-border")}
-                                    >
-                                        <div className={cn("text-center mb-2", isToday(day) && "text-primary font-medium")}>
-                                            <p className="text-xs">{formatDayName(day)}</p>
-                                            <p className="text-lg font-semibold">{day.getDate()}</p>
-                                        </div>
-                                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                                            {dayAppointments.length === 0 ? (
-                                                <p className="text-xs text-muted-foreground text-center">No appointments</p>
-                                            ) : dayAppointments.slice(0, 3).map(apt => (
-                                                <div key={apt.id} className={cn("p-1.5 rounded text-xs", apt.status === 'scheduled' ? 'bg-blue-100 dark:bg-blue-900/30' : apt.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800')}>
-                                                    <p className="font-medium truncate">{apt.patient.name}</p>
-                                                    <p className="text-muted-foreground">{formatTime(apt.scheduledAt)}</p>
-                                                </div>
-                                            ))}
-                                            {dayAppointments.length > 3 && (
-                                                <p className="text-xs text-primary font-medium text-center">+{dayAppointments.length - 3} more</p>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
-            )}
-
-            {/* Search, Filter, Sort */}
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Search by name, UHID, or phone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
-                <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2"><Filter className="w-4 h-4" />Filters{filterType !== 'all' && <span className="px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded">1</span>}</Button>
-                <Button variant="outline" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="flex items-center gap-2"><ArrowUpDown className="w-4 h-4" />Sort: {sortBy}</Button>
+                {appointmentsLoading ? (
+                    <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                ) : (
+                    <div className="grid grid-cols-7 gap-2">
+                        {weekDays.map((day, idx) => {
+                            const dayAppointments = getAppointmentsForDay(day);
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => setSelectedDayForAppointments(day)}
+                                    className={cn("p-2 rounded-lg border min-h-[120px] text-left hover:bg-muted/50 transition-colors cursor-pointer", isToday(day) ? "border-primary bg-primary/5" : "border-border")}
+                                >
+                                    <div className={cn("text-center mb-2", isToday(day) && "text-primary font-medium")}>
+                                        <p className="text-xs">{formatDayName(day)}</p>
+                                        <p className="text-lg font-semibold">{day.getDate()}</p>
+                                    </div>
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {dayAppointments.length === 0 ? (
+                                            <p className="text-xs text-muted-foreground text-center">No appointments</p>
+                                        ) : dayAppointments.slice(0, 3).map(apt => (
+                                            <div key={apt.id} className={cn("p-1.5 rounded text-xs", apt.status === 'scheduled' ? 'bg-blue-100 dark:bg-blue-900/30' : apt.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800')}>
+                                                <p className="font-medium truncate">{apt.patient.name}</p>
+                                                <p className="text-muted-foreground">{formatTime(apt.scheduledAt)}</p>
+                                            </div>
+                                        ))}
+                                        {dayAppointments.length > 3 && (
+                                            <p className="text-xs text-primary font-medium text-center">+{dayAppointments.length - 3} more</p>
+                                        )}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
-
-            {showFilters && (
-                <div className="p-4 bg-muted/30 rounded-lg flex flex-wrap gap-4 items-center">
-                    <div><Label className="text-xs text-muted-foreground">Patient Type</Label><div className="flex gap-2 mt-1">{['all', 'OPD', 'IPD', 'EMERGENCY'].map(type => (<button key={type} onClick={() => setFilterType(type)} className={cn("px-3 py-1 text-sm rounded-full transition-colors", filterType === type ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80")}>{type === 'all' ? 'All' : type}</button>))}</div></div>
-                    <div><Label className="text-xs text-muted-foreground">Sort By</Label><div className="flex gap-2 mt-1">{[{ key: 'time', label: 'Time' }, { key: 'name', label: 'Name' }, { key: 'type', label: 'Type' }].map(({ key, label }) => (<button key={key} onClick={() => setSortBy(key as 'name' | 'time' | 'type')} className={cn("px-3 py-1 text-sm rounded-full transition-colors", sortBy === key ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80")}>{label}</button>))}</div></div>
-                </div>
-            )}
-
-            {loading ? (
-                <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
-            ) : filteredAndSortedEncounters.length === 0 ? (
-                <div className="floating-card text-center py-12"><UserPlus className="w-12 h-12 mx-auto text-muted-foreground mb-4" /><p className="text-muted-foreground">{search || filterType !== 'all' ? 'No patients match your search/filters' : 'No active patients'}</p></div>
-            ) : (
-                <div className="grid gap-4">
-                    {filteredAndSortedEncounters.map((encounter) => {
-                        const currentBed = getCurrentBed(encounter);
-                        return (
-                            <div key={encounter.id} className="floating-card">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">{encounter.patient.name.charAt(0)}</div>
-                                        <div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <p className="font-medium">{encounter.patient.name}</p>
-                                                <span className="text-xs text-muted-foreground">{encounter.patient.uhid}</span>
-                                                <span className={cn("px-2 py-0.5 text-xs rounded font-medium", encounter.type === 'EMERGENCY' ? 'bg-status-critical/10 text-status-critical' : encounter.type === 'IPD' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400')}>{encounter.type}</span>
-                                                {encounter.type === 'IPD' && currentBed && (<span className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 flex items-center gap-1"><BedDouble className="w-3 h-3" />{currentBed.ward} - Bed {currentBed.bedNumber}</span>)}
-                                            </div>
-                                            <p className="text-sm text-muted-foreground">{getAge(encounter.patient.dob)}y {encounter.patient.gender.charAt(0)} • {encounter.department || 'General'}</p>
-                                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                                {encounter.type === 'OPD' && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDateTime(encounter.arrivalTime)}</span>)}
-                                                {encounter.type === 'IPD' && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Admitted: {formatDate(encounter.admissionTime)}</span>)}
-                                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Updated {getTimeSince(encounter.updatedAt)}</span>
-                                            </div>
-                                            {encounter.patient.allergies?.length > 0 && (<div className="flex items-center gap-1 mt-1"><AlertTriangle className="w-3 h-3 text-status-critical" /><span className="text-xs text-status-critical">Allergies: {encounter.patient.allergies.map(a => a.allergen).join(', ')}</span></div>)}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2 flex-wrap justify-end">
-                                        <Button size="sm" variant="outline" onClick={() => openEMR(encounter)}><ClipboardList className="w-4 h-4 mr-1" />View EMR</Button>
-                                        <Button size="sm" variant="outline" onClick={() => openLabResults(encounter)}><Eye className="w-4 h-4 mr-1" />Reports</Button>
-                                        <Button size="sm" variant="outline" onClick={() => openForPatient(encounter, 'note')}><FileText className="w-4 h-4 mr-1" />Add Note</Button>
-                                        <Button size="sm" variant="outline" onClick={() => openForPatient(encounter, 'lab')}><FlaskConical className="w-4 h-4 mr-1" />Order Lab</Button>
-                                        <Button size="sm" onClick={() => openForPatient(encounter, 'prescription')}><Pill className="w-4 h-4 mr-1" />Prescribe</Button>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
 
             {/* EMR Drawer - Same as before but with radiology results */}
             {showEMRDrawer && selectedEncounter && (
