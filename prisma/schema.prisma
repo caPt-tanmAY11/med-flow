@@ -48,11 +48,11 @@ model user {
   image         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime
-  role          ROLE     @default(DOCTOR)
-
-  account   account[]
-  session   session[]
-  userRoles UserRole[]
+  role          ROLE       @default(DOCTOR)
+  uhid          String?    @unique
+  userRoles     UserRole[]
+  account       account[]
+  session       session[]
 }
 
 model verification {
@@ -105,6 +105,8 @@ model Patient {
   prescriptions       Prescription[]
   riskAssessments     RiskAssessment[]
   vitalSigns          VitalSign[]
+  labTestOrders       LabTestOrder[]
+  implants            PatientImplant[]
 
   @@index([phoneHash])
   @@index([nameNormalized])
@@ -202,11 +204,11 @@ model VitalSign {
   painScore      Int?
   gcs            Int?
   notes          String?
-  isCritical     Boolean   @default(false)
-  escalatedTo    String?
   escalatedAt    DateTime?
+  escalatedTo    String?
   escalationNote String?
-  verifiedWith   String?   // NurseVerification id
+  isCritical     Boolean   @default(false)
+  verifiedWith   String?
   encounter      Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   patient        Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
@@ -310,8 +312,8 @@ model ShiftHandover {
   pendingTasks   Json
   alerts         Json
   acknowledgedAt DateTime?
-  handoverNotes  String?
   criticalAlerts Json?
+  handoverNotes  String?
 
   @@index([encounterId])
   @@index([handoverAt])
@@ -897,7 +899,7 @@ model BillItem {
   unitPrice   Float
   totalPrice  Float
   tariffId    String?
-  department  String? // Track which department generated this revenue (LABORATORY, PHARMACY, CARDIOLOGY, etc.)
+  department  String?
   bill        Bill    @relation(fields: [billId], references: [id], onDelete: Cascade)
 
   @@index([billId])
@@ -1253,6 +1255,244 @@ model DashboardConfig {
   @@index([userId])
 }
 
+model NurseDuty {
+  id         String    @id @default(uuid())
+  nurseId    String
+  nurseName  String
+  shiftType  String
+  shiftDate  DateTime
+  checkInAt  DateTime?
+  checkOutAt DateTime?
+  isActive   Boolean   @default(true)
+  ward       String?
+  createdAt  DateTime  @default(now())
+  secretCode String?
+
+  @@index([nurseId])
+  @@index([shiftDate])
+  @@index([isActive])
+}
+
+model NursePatientAssignment {
+  id          String    @id @default(uuid())
+  nurseId     String
+  nurseName   String
+  encounterId String
+  patientId   String
+  assignedAt  DateTime  @default(now())
+  assignedBy  String
+  endTime     DateTime?
+  isActive    Boolean   @default(true)
+
+  @@index([nurseId])
+  @@index([encounterId])
+  @@index([patientId])
+  @@index([isActive])
+}
+
+model NurseDailyCode {
+  id        String   @id @default(uuid())
+  code      String
+  validDate DateTime
+  createdBy String
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+
+  @@index([validDate])
+  @@index([isActive])
+}
+
+model NurseVerification {
+  id         String   @id @default(uuid())
+  nurseId    String
+  nurseName  String
+  verifiedAt DateTime @default(now())
+  codeUsed   String
+  ipAddress  String?
+  shiftDate  DateTime
+
+  @@index([nurseId])
+  @@index([verifiedAt])
+  @@index([shiftDate])
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  type        String    @default("info")
+  link        String?
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  encounterId String?
+  patientId   String?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// ===============================
+// LAB & RADIOLOGY MODULE
+// ===============================
+// Lab Test Catalog - Available tests with pricing
+model LabTest {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  category        String   // HEMATOLOGY, BIOCHEMISTRY, MICROBIOLOGY, RADIOLOGY, etc.
+  type            String   // LAB or RADIOLOGY
+  description     String?
+  price           Float
+  discountedPrice Float?
+  prerequisites   Json     // Fasting requirements, special instructions
+  sampleType      String?  // blood, urine, stool, etc. (null for radiology)
+  turnaroundTime  String   // e.g., "24 hours", "2-3 days"
+  isActive        Boolean  @default(true)
+  isHomeCollection Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+  
+  testOrders      LabTestOrder[]
+  resultFields    LabTestResultField[]
+  
+  @@index([category])
+  @@index([type])
+  @@index([isActive])
+}
+// Result field definitions for structured results
+model LabTestResultField {
+  id          String   @id @default(uuid())
+  testId      String
+  fieldName   String
+  fieldLabel  String
+  fieldType   String   // number, text, select, range
+  unit        String?
+  normalMin   Float?
+  normalMax   Float?
+  options     String[] // for select type
+  isRequired  Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  test        LabTest  @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  @@index([testId])
+}
+// Patient's test orders (cart + submitted)
+model LabTestOrder {
+  id                String    @id @default(uuid())
+  patientId         String
+  testId            String
+  status            String    @default("cart") // cart, pending, sample_collected, processing, completed, cancelled
+  priority          Priority  @default(ROUTINE)
+  prescriptionUrl   String?
+  scheduledDate     DateTime?
+  notes             String?
+  
+  // Patient safety info
+  hasAllergies      Boolean   @default(false)
+  allergyNotes      String?
+  hasImplants       Boolean   @default(false)
+  implantDetails    String?
+  
+  // Technician assignment
+  assignedTo        String?
+  barcode           String?   @unique
+  collectedAt       DateTime?
+  collectedBy       String?
+  
+  // Results
+  resultData        Json?
+  resultedAt        DateTime?
+  resultedBy        String?
+  reportUrl         String?
+  isCritical        Boolean   @default(false)
+  verifiedAt        DateTime?
+  verifiedBy        String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+  
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  test              LabTest   @relation(fields: [testId], references: [id])
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([barcode])
+  @@index([createdAt])
+}
+// Patient implant records (for MRI/CT safety)
+model PatientImplant {
+  id          String   @id @default(uuid())
+  patientId   String
+  type        String   // pacemaker, cochlear_implant, metal_plates, etc.
+  location    String
+  mriSafe     Boolean?
+  details     String?
+  dateInserted DateTime?
+  documentUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@index([patientId])
+}
+// External lab clients
+model ExternalLabClient {
+  id            String   @id @default(uuid())
+  name          String
+  code          String   @unique
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  
+  referrals     ExternalLabReferral[]
+}
+// Referrals from external labs
+model ExternalLabReferral {
+  id            String   @id @default(uuid())
+  clientId      String
+  patientName   String
+  patientAge    Int?
+  patientGender String?
+  testCodes     String[]
+  status        String   @default("pending")
+  receivedAt    DateTime @default(now())
+  completedAt   DateTime?
+  reportUrls    String[]
+  notes         String?
+  
+  client        ExternalLabClient @relation(fields: [clientId], references: [id])
+  
+  @@index([clientId])
+  @@index([status])
+}
+// Lab inventory tracking
+model LabInventoryItem {
+  id           String   @id @default(uuid())
+  itemCode     String   @unique
+  name         String
+  category     String   // reagents, consumables, equipment
+  unit         String
+  currentStock Int      @default(0)
+  minStock     Int      @default(10)
+  maxStock     Int?
+  unitCost     Float?
+  expiryDate   DateTime?
+  location     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  
+  @@index([category])
+  @@index([currentStock])
+}
+
 enum EncounterType {
   OPD
   IPD
@@ -1302,98 +1542,12 @@ enum SyncStatus {
 enum ROLE {
   DOCTOR
   NURSE
-  FRONT_DESK
-  PHARMACIST
   LAB_PERSON
   ADMIN
   NURSING_ADMIN
-  BILLING
   PATIENT
+  FRONT_DESK
+  PHARMACIST
+  BILLING
   MANAGEMENT
-}
-
-// Nurse duty/shift tracking
-model NurseDuty {
-  id         String    @id @default(uuid())
-  nurseId    String
-  nurseName  String
-  shiftType  String    // MORNING, EVENING, NIGHT
-  shiftDate  DateTime
-  checkInAt  DateTime?
-  checkOutAt DateTime?
-  isActive   Boolean   @default(true)
-  ward       String?
-  secretCode String?   // Unique code generated by admin for this nurse's shift
-  createdAt  DateTime  @default(now())
-
-  @@index([nurseId])
-  @@index([shiftDate])
-  @@index([isActive])
-}
-
-// Nurse-patient assignment
-model NursePatientAssignment {
-  id          String    @id @default(uuid())
-  nurseId     String
-  nurseName   String
-  encounterId String
-  patientId   String
-  assignedAt  DateTime  @default(now())
-  assignedBy  String
-  endTime     DateTime?
-  isActive    Boolean   @default(true)
-
-  @@index([nurseId])
-  @@index([encounterId])
-  @@index([patientId])
-  @@index([isActive])
-}
-
-// Daily verification codes for nurses (admin creates)
-model NurseDailyCode {
-  id        String   @id @default(uuid())
-  code      String   // 4-digit code
-  validDate DateTime
-  createdBy String
-  createdAt DateTime @default(now())
-  isActive  Boolean  @default(true)
-
-  @@index([validDate])
-  @@index([isActive])
-}
-
-// Nurse verification log - tracks when nurses verify with daily code
-model NurseVerification {
-  id         String   @id @default(uuid())
-  nurseId    String
-  nurseName  String
-  verifiedAt DateTime @default(now())
-  codeUsed   String
-  ipAddress  String?
-  shiftDate  DateTime
-
-  @@index([nurseId])
-  @@index([verifiedAt])
-  @@index([shiftDate])
-}
-
-// Notification model for persistent notifications
-model Notification {
-  id          String    @id @default(uuid())
-  userId      String    // User who should receive this notification
-  title       String
-  message     String
-  type        String    @default("info") // info, success, warning, critical
-  link        String?   // Optional link to navigate to
-  isRead      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  readAt      DateTime?
-  
-  // Reference fields for context
-  encounterId String?
-  patientId   String?
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
 }

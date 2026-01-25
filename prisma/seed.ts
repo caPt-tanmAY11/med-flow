@@ -382,10 +382,20 @@ async function main() {
 
             const paidAmount = billNum % 3 === 0 ? subtotal : billNum % 3 === 1 ? subtotal * 0.5 : 0;
 
+            const encounter = await prisma.encounter.findFirst({
+                where: { patientId: patient.id },
+                orderBy: { arrivalTime: 'desc' },
+            });
+
+
+            if (!encounter) continue; // safety guard
+
+
             const bill = await prisma.bill.create({
                 data: {
                     billNumber,
                     patientId: patient.id,
+                    encounterId: encounter.id, // ✅ REQUIRED
                     status: paidAmount === subtotal ? 'paid' : paidAmount > 0 ? 'partial' : 'pending',
                     subtotal,
                     totalAmount: subtotal,
@@ -930,6 +940,172 @@ async function main() {
         });
     }
     console.log(`  ✓ Created resource utilization records`);
+
+    // Create Lab Test Catalog for Lab Module
+    console.log('Creating lab test catalog...');
+    const labTestCatalog = [
+        // Hematology
+        {
+            code: 'CBC', name: 'Complete Blood Count', category: 'HEMATOLOGY', type: 'LAB', price: 400, sampleType: 'blood', turnaroundTime: '4 hours', prerequisites: { fasting: false, instructions: ['No special preparation required'] }, resultFields: [
+                { fieldName: 'hemoglobin', fieldLabel: 'Hemoglobin', fieldType: 'number', unit: 'g/dL', normalMin: 12, normalMax: 16 },
+                { fieldName: 'wbc', fieldLabel: 'WBC Count', fieldType: 'number', unit: 'cells/mcL', normalMin: 4500, normalMax: 11000 },
+                { fieldName: 'platelets', fieldLabel: 'Platelet Count', fieldType: 'number', unit: 'cells/mcL', normalMin: 150000, normalMax: 400000 },
+                { fieldName: 'rbc', fieldLabel: 'RBC Count', fieldType: 'number', unit: 'million/mcL', normalMin: 4.2, normalMax: 5.9 },
+            ]
+        },
+        {
+            code: 'ESR', name: 'Erythrocyte Sedimentation Rate', category: 'HEMATOLOGY', type: 'LAB', price: 100, sampleType: 'blood', turnaroundTime: '2 hours', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'esr', fieldLabel: 'ESR', fieldType: 'number', unit: 'mm/hr', normalMin: 0, normalMax: 20 },
+            ]
+        },
+        // Biochemistry
+        {
+            code: 'LIPID', name: 'Lipid Profile', category: 'BIOCHEMISTRY', type: 'LAB', price: 600, discountedPrice: 500, sampleType: 'blood', turnaroundTime: '6 hours', prerequisites: { fasting: true, fastingHours: 12, instructions: ['Avoid fatty foods 24 hours before', 'Continue regular medications'], warnings: ['Inform if diabetic'] }, resultFields: [
+                { fieldName: 'totalCholesterol', fieldLabel: 'Total Cholesterol', fieldType: 'number', unit: 'mg/dL', normalMin: 0, normalMax: 200 },
+                { fieldName: 'hdl', fieldLabel: 'HDL Cholesterol', fieldType: 'number', unit: 'mg/dL', normalMin: 40, normalMax: 60 },
+                { fieldName: 'ldl', fieldLabel: 'LDL Cholesterol', fieldType: 'number', unit: 'mg/dL', normalMin: 0, normalMax: 100 },
+                { fieldName: 'triglycerides', fieldLabel: 'Triglycerides', fieldType: 'number', unit: 'mg/dL', normalMin: 0, normalMax: 150 },
+            ]
+        },
+        {
+            code: 'LFT', name: 'Liver Function Test', category: 'BIOCHEMISTRY', type: 'LAB', price: 800, sampleType: 'blood', turnaroundTime: '6 hours', prerequisites: { fasting: true, fastingHours: 8 }, resultFields: [
+                { fieldName: 'sgot', fieldLabel: 'SGOT (AST)', fieldType: 'number', unit: 'U/L', normalMin: 5, normalMax: 40 },
+                { fieldName: 'sgpt', fieldLabel: 'SGPT (ALT)', fieldType: 'number', unit: 'U/L', normalMin: 7, normalMax: 56 },
+                { fieldName: 'bilirubin', fieldLabel: 'Total Bilirubin', fieldType: 'number', unit: 'mg/dL', normalMin: 0.1, normalMax: 1.2 },
+                { fieldName: 'albumin', fieldLabel: 'Albumin', fieldType: 'number', unit: 'g/dL', normalMin: 3.5, normalMax: 5.5 },
+            ]
+        },
+        {
+            code: 'KFT', name: 'Kidney Function Test', category: 'BIOCHEMISTRY', type: 'LAB', price: 700, sampleType: 'blood', turnaroundTime: '6 hours', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'creatinine', fieldLabel: 'Creatinine', fieldType: 'number', unit: 'mg/dL', normalMin: 0.6, normalMax: 1.2 },
+                { fieldName: 'bun', fieldLabel: 'BUN', fieldType: 'number', unit: 'mg/dL', normalMin: 7, normalMax: 20 },
+                { fieldName: 'uricAcid', fieldLabel: 'Uric Acid', fieldType: 'number', unit: 'mg/dL', normalMin: 3.4, normalMax: 7.0 },
+            ]
+        },
+        {
+            code: 'HBA1C', name: 'Glycated Hemoglobin (HbA1c)', category: 'BIOCHEMISTRY', type: 'LAB', price: 550, discountedPrice: 450, sampleType: 'blood', turnaroundTime: '24 hours', prerequisites: { fasting: false, instructions: ['Can be done anytime'] }, resultFields: [
+                { fieldName: 'hba1c', fieldLabel: 'HbA1c', fieldType: 'number', unit: '%', normalMin: 4, normalMax: 5.6 },
+            ]
+        },
+        {
+            code: 'FBS', name: 'Fasting Blood Sugar', category: 'BIOCHEMISTRY', type: 'LAB', price: 100, sampleType: 'blood', turnaroundTime: '2 hours', prerequisites: { fasting: true, fastingHours: 8, warnings: ['For diabetic patients, consult regarding medications'] }, resultFields: [
+                { fieldName: 'fbs', fieldLabel: 'Fasting Blood Sugar', fieldType: 'number', unit: 'mg/dL', normalMin: 70, normalMax: 100 },
+            ]
+        },
+        // Thyroid
+        {
+            code: 'TSH', name: 'Thyroid Stimulating Hormone', category: 'THYROID', type: 'LAB', price: 450, sampleType: 'blood', turnaroundTime: '6 hours', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'tsh', fieldLabel: 'TSH', fieldType: 'number', unit: 'mIU/L', normalMin: 0.4, normalMax: 4.0 },
+            ]
+        },
+        {
+            code: 'TFT', name: 'Thyroid Profile Complete', category: 'THYROID', type: 'LAB', price: 900, discountedPrice: 750, sampleType: 'blood', turnaroundTime: '6 hours', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'tsh', fieldLabel: 'TSH', fieldType: 'number', unit: 'mIU/L', normalMin: 0.4, normalMax: 4.0 },
+                { fieldName: 't3', fieldLabel: 'T3', fieldType: 'number', unit: 'ng/dL', normalMin: 80, normalMax: 200 },
+                { fieldName: 't4', fieldLabel: 'T4', fieldType: 'number', unit: 'mcg/dL', normalMin: 5.0, normalMax: 12.0 },
+            ]
+        },
+        // Urine/Stool
+        {
+            code: 'URINE-R', name: 'Urine Routine & Microscopy', category: 'URINE', type: 'LAB', price: 150, sampleType: 'urine', turnaroundTime: '2 hours', prerequisites: { fasting: false, instructions: ['Mid-stream clean catch sample preferred'] }, resultFields: [
+                { fieldName: 'color', fieldLabel: 'Color', fieldType: 'text' },
+                { fieldName: 'ph', fieldLabel: 'pH', fieldType: 'number', normalMin: 4.5, normalMax: 8.0 },
+                { fieldName: 'protein', fieldLabel: 'Protein', fieldType: 'select', options: ['Nil', 'Trace', '+', '++', '+++'] },
+                { fieldName: 'glucose', fieldLabel: 'Glucose', fieldType: 'select', options: ['Nil', 'Trace', '+', '++', '+++'] },
+            ]
+        },
+        {
+            code: 'STOOL-R', name: 'Stool Routine', category: 'STOOL', type: 'LAB', price: 150, sampleType: 'stool', turnaroundTime: '4 hours', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'color', fieldLabel: 'Color', fieldType: 'text' },
+                { fieldName: 'occultBlood', fieldLabel: 'Occult Blood', fieldType: 'select', options: ['Negative', 'Positive'] },
+                { fieldName: 'parasites', fieldLabel: 'Ova/Parasites', fieldType: 'select', options: ['Not seen', 'Present'] },
+            ]
+        },
+        // Radiology
+        {
+            code: 'XRAY-CHEST', name: 'X-Ray Chest PA View', category: 'RADIOLOGY', type: 'RADIOLOGY', price: 500, turnaroundTime: '1 hour', prerequisites: { fasting: false, instructions: ['Remove jewelry and metal objects', 'Wear loose clothing'] }, resultFields: [
+                { fieldName: 'findings', fieldLabel: 'Findings', fieldType: 'text' },
+                { fieldName: 'impression', fieldLabel: 'Impression', fieldType: 'text' },
+            ]
+        },
+        {
+            code: 'USG-ABD', name: 'Ultrasound Abdomen', category: 'RADIOLOGY', type: 'RADIOLOGY', price: 800, turnaroundTime: '1 hour', prerequisites: { fasting: true, fastingHours: 6, instructions: ['Drink 4-5 glasses of water 1 hour before', 'Do not urinate before test'] }, resultFields: [
+                { fieldName: 'liver', fieldLabel: 'Liver', fieldType: 'text' },
+                { fieldName: 'kidneys', fieldLabel: 'Kidneys', fieldType: 'text' },
+                { fieldName: 'impression', fieldLabel: 'Impression', fieldType: 'text' },
+            ]
+        },
+        {
+            code: 'CT-HEAD', name: 'CT Scan Head', category: 'RADIOLOGY', type: 'RADIOLOGY', price: 5000, turnaroundTime: '2 hours', prerequisites: { fasting: false, warnings: ['Inform if you have any implants', 'Inform if pregnant'] }, resultFields: [
+                { fieldName: 'findings', fieldLabel: 'Findings', fieldType: 'text' },
+                { fieldName: 'impression', fieldLabel: 'Impression', fieldType: 'text' },
+            ]
+        },
+        {
+            code: 'MRI-BRAIN', name: 'MRI Brain', category: 'RADIOLOGY', type: 'RADIOLOGY', price: 8000, discountedPrice: 7000, turnaroundTime: '3 hours', prerequisites: { fasting: false, warnings: ['Not suitable for patients with pacemakers', 'Remove all metal objects', 'Inform about any implants'] }, resultFields: [
+                { fieldName: 'findings', fieldLabel: 'Findings', fieldType: 'text' },
+                { fieldName: 'impression', fieldLabel: 'Impression', fieldType: 'text' },
+            ]
+        },
+        {
+            code: 'ECG', name: 'Electrocardiogram (ECG)', category: 'CARDIOLOGY', type: 'RADIOLOGY', price: 200, turnaroundTime: '30 minutes', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'heartRate', fieldLabel: 'Heart Rate', fieldType: 'number', unit: 'bpm', normalMin: 60, normalMax: 100 },
+                { fieldName: 'rhythm', fieldLabel: 'Rhythm', fieldType: 'select', options: ['Sinus rhythm', 'Atrial fibrillation', 'Other'] },
+                { fieldName: 'interpretation', fieldLabel: 'Interpretation', fieldType: 'text' },
+            ]
+        },
+        {
+            code: 'ECHO', name: 'Echocardiogram', category: 'CARDIOLOGY', type: 'RADIOLOGY', price: 2500, turnaroundTime: '1 hour', prerequisites: { fasting: false }, resultFields: [
+                { fieldName: 'ef', fieldLabel: 'Ejection Fraction', fieldType: 'number', unit: '%', normalMin: 55, normalMax: 70 },
+                { fieldName: 'findings', fieldLabel: 'Findings', fieldType: 'text' },
+                { fieldName: 'impression', fieldLabel: 'Impression', fieldType: 'text' },
+            ]
+        },
+    ];
+
+    for (const test of labTestCatalog) {
+        const { resultFields, ...testData } = test;
+        const existingTest = await prisma.labTest.findUnique({ where: { code: test.code } });
+        if (!existingTest) {
+            const createdTest = await prisma.labTest.create({
+                data: {
+                    ...testData,
+                    prerequisites: testData.prerequisites as object,
+                    isHomeCollection: ['CBC', 'LIPID', 'LFT', 'KFT', 'TSH', 'TFT', 'FBS', 'HBA1C'].includes(test.code),
+                },
+            });
+            // Create result fields
+            for (let i = 0; i < resultFields.length; i++) {
+                await prisma.labTestResultField.create({
+                    data: {
+                        testId: createdTest.id,
+                        ...resultFields[i],
+                        sortOrder: i,
+                        isRequired: true,
+                    },
+                });
+            }
+        }
+    }
+    console.log(`  ✓ Created ${labTestCatalog.length} lab tests with result field definitions`);
+
+    // Create Lab Inventory Items
+    console.log('Creating lab inventory items...');
+    const labInventory = [
+        { itemCode: 'REA-001', name: 'CBC Reagent Kit', category: 'reagents', unit: 'kit', currentStock: 25, minStock: 10, unitCost: 5000 },
+        { itemCode: 'REA-002', name: 'Lipid Panel Reagent', category: 'reagents', unit: 'bottle', currentStock: 8, minStock: 15, unitCost: 3500 },
+        { itemCode: 'REA-003', name: 'LFT Reagent Kit', category: 'reagents', unit: 'kit', currentStock: 20, minStock: 10, unitCost: 4500 },
+        { itemCode: 'CON-LAB-001', name: 'Blood Collection Tubes (EDTA)', category: 'consumables', unit: 'box', currentStock: 50, minStock: 20, unitCost: 500 },
+        { itemCode: 'CON-LAB-002', name: 'Urine Collection Cups', category: 'consumables', unit: 'box', currentStock: 30, minStock: 10, unitCost: 300 },
+        { itemCode: 'CON-LAB-003', name: 'Needles 21G', category: 'consumables', unit: 'box', currentStock: 5, minStock: 15, unitCost: 200 },
+    ];
+    for (const item of labInventory) {
+        const existing = await prisma.labInventoryItem.findUnique({ where: { itemCode: item.itemCode } });
+        if (!existing) {
+            await prisma.labInventoryItem.create({ data: item });
+        }
+    }
+    console.log(`  ✓ Created ${labInventory.length} lab inventory items`);
 
     console.log('\n✅ Comprehensive database seeded successfully!');
     console.log('\n📊 Summary:');
