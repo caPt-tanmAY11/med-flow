@@ -11,7 +11,7 @@ import path from "path";
  * Request body: { image: "base64 encoded image data" }
  * Response: { success: true, text: "extracted text", confidence: 85.5 }
  */
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
     try {
         const { image } = await req.json();
 
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         const venvPython = path.join(process.cwd(), "venv", "bin", "python3");
         const pythonCmd = venvPython; // Using venv python for PaddleOCR
 
-        return new Promise<NextResponse>((resolve) => {
+        const result = await new Promise<Response>((resolve) => {
             const pythonProcess = spawn(pythonCmd, [scriptPath]);
 
             let outputData = "";
@@ -75,6 +75,8 @@ export async function POST(req: Request) {
                 }, { status: 500 }));
             });
         });
+
+        return result;
 
     } catch (e: unknown) {
         console.error("API Error:", e);

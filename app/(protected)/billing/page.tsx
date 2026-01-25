@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Receipt, RefreshCw, Loader2, CreditCard, IndianRupee, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,8 @@ interface Bill {
 
 export default function BillingPage() {
     const { toast } = useToast();
+    const searchParams = useSearchParams();
+    const patientIdFromUrl = searchParams.get('patientId');
     const [loading, setLoading] = useState(true);
     const [bills, setBills] = useState<Bill[]>([]);
     const [stats, setStats] = useState({ todayRevenue: 0, pendingAmount: 0 });
@@ -39,6 +42,7 @@ export default function BillingPage() {
         try {
             const params = new URLSearchParams();
             if (filter) params.append('status', filter);
+            if (patientIdFromUrl) params.append('patientId', patientIdFromUrl);
             const response = await fetch(`/api/billing?${params}`);
             const result = await response.json();
             setBills(result.data || []);
@@ -50,7 +54,7 @@ export default function BillingPage() {
         }
     };
 
-    useEffect(() => { fetchBills(); }, [filter]);
+    useEffect(() => { fetchBills(); }, [filter, patientIdFromUrl]);
 
     const handlePayment = async () => {
         if (!selectedBill || !paymentAmount) return;

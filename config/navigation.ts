@@ -150,6 +150,18 @@ export const navigationConfig: NavGroup[] = [
                 icon: FlaskConical,
                 roles: ['ADMIN', 'DOCTOR', 'NURSE', 'LAB_PERSON', 'NURSING_ADMIN'],
             },
+            {
+                title: 'Lab Patient Portal',
+                href: '/lab-patient',
+                icon: FlaskConical,
+                roles: ['ADMIN', 'PATIENT', 'FRONT_DESK'],
+            },
+            {
+                title: 'Lab Technician',
+                href: '/lab-technician',
+                icon: FlaskConical,
+                roles: ['ADMIN', 'LAB_PERSON'],
+            },
         ],
     },
     {

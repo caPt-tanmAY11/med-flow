@@ -1508,6 +1508,248 @@ model PatientImplant {
   @@index([patientId])
 }
 
+model NurseDuty {
+  id         String    @id @default(uuid())
+  nurseId    String
+  nurseName  String
+  shiftType  String
+  shiftDate  DateTime
+  checkInAt  DateTime?
+  checkOutAt DateTime?
+  isActive   Boolean   @default(true)
+  ward       String?
+  createdAt  DateTime  @default(now())
+  secretCode String?
+
+  @@index([nurseId])
+  @@index([shiftDate])
+  @@index([isActive])
+}
+
+model NursePatientAssignment {
+  id          String    @id @default(uuid())
+  nurseId     String
+  nurseName   String
+  encounterId String
+  patientId   String
+  type        String   // pacemaker, cochlear_implant, metal_plates, etc.
+  location    String
+  mriSafe     Boolean?
+  details     String?
+  dateInserted DateTime?
+  documentUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  @@index([patientId])
+  @@index([isActive])
+}
+
+model NurseDailyCode {
+  id        String   @id @default(uuid())
+  code      String
+  validDate DateTime
+  createdBy String
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+
+  @@index([validDate])
+  @@index([isActive])
+}
+
+model NurseVerification {
+  id         String   @id @default(uuid())
+  nurseId    String
+  nurseName  String
+  verifiedAt DateTime @default(now())
+  codeUsed   String
+  ipAddress  String?
+  shiftDate  DateTime
+
+  @@index([nurseId])
+  @@index([verifiedAt])
+  @@index([shiftDate])
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  message     String
+  type        String    @default("info")
+  link        String?
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  readAt      DateTime?
+  encounterId String?
+  patientId   String?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model ExternalLabClient {
+  id                  String                @id
+  name                String
+  code                String                @unique
+  contactPerson       String?
+  phone               String?
+  email               String?
+  address             String?
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now())
+  ExternalLabReferral ExternalLabReferral[]
+}
+
+model ExternalLabReferral {
+  id                String            @id
+  clientId          String
+  patientName       String
+  patientAge        Int?
+  patientGender     String?
+  testCodes         String[]
+  status            String            @default("pending")
+  receivedAt        DateTime          @default(now())
+  completedAt       DateTime?
+  reportUrls        String[]
+  notes             String?
+  ExternalLabClient ExternalLabClient @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model LabInventoryItem {
+  id           String    @id
+  itemCode     String    @unique
+  name         String
+  category     String
+  unit         String
+  currentStock Int       @default(0)
+  minStock     Int       @default(10)
+  maxStock     Int?
+  unitCost     Float?
+  expiryDate   DateTime?
+  location     String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+
+  @@index([category])
+  @@index([currentStock])
+}
+
+model LabTest {
+  id                 String               @id
+  code               String               @unique
+  name               String
+  category           String
+  type               String
+  description        String?
+  price              Float
+  discountedPrice    Float?
+  prerequisites      Json
+  sampleType         String?
+  turnaroundTime     String
+  isActive           Boolean              @default(true)
+  isHomeCollection   Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @default(now())
+  LabTestOrder       LabTestOrder[]
+  LabTestResultField LabTestResultField[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([type])
+}
+
+model LabTestOrder {
+  id              String    @id
+  patientId       String
+  testId          String
+  status          String    @default("cart")
+  priority        Priority  @default(ROUTINE)
+  prescriptionUrl String?
+  scheduledDate   DateTime?
+  notes           String?
+  hasAllergies    Boolean   @default(false)
+  allergyNotes    String?
+  hasImplants     Boolean   @default(false)
+  implantDetails  String?
+  assignedTo      String?
+  barcode         String?   @unique
+  collectedAt     DateTime?
+  collectedBy     String?
+  resultData      Json?
+  resultedAt      DateTime?
+  resultedBy      String?
+  reportUrl       String?
+  isCritical      Boolean   @default(false)
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now())
+  Patient         Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  LabTest         LabTest   @relation(fields: [testId], references: [id])
+
+  @@index([barcode])
+  @@index([createdAt])
+  @@index([patientId])
+  @@index([status])
+}
+
+model LabTestResultField {
+  id         String   @id
+  testId     String
+  fieldName  String
+  fieldLabel String
+  fieldType  String
+  unit       String?
+  normalMin  Float?
+  normalMax  Float?
+  options    String[]
+  isRequired Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  LabTest    LabTest  @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+}
+
+model OPDQueue {
+  id          String   @id
+  doctorId    String
+  patientId   String
+  tokenNumber Int
+  status      String   @default("WAITING")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+  user        user     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  Patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([doctorId])
+  @@index([status])
+}
+
+model PatientImplant {
+  id           String    @id
+  patientId    String
+  type         String
+  location     String
+  mriSafe      Boolean?
+  details      String?
+  dateInserted DateTime?
+  documentUrl  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  Patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+}
+
 enum EncounterType {
   OPD
   IPD
