@@ -38,7 +38,7 @@ export const navigationConfig: NavGroup[] = [
     {
         title: 'Patient Portal',
         items: [
-             {
+            {
                 title: 'My Health',
                 href: '/patient/dashboard',
                 icon: Heart,
