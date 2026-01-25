@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         const doctorId = searchParams.get("doctorId") || session.user.id;
         const status = searchParams.get("status") || "WAITING";
 
-        const queue = await prisma.oPDQueue.findMany({
+        const queue = await (prisma as any).oPDQueue.findMany({
             where: {
                 doctorId: doctorId,
                 status: status,
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const lastEntry = await prisma.oPDQueue.findFirst({
+        const lastEntry = await (prisma as any).oPDQueue.findFirst({
             where: {
                 doctorId: doctorId,
                 createdAt: {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
         const newTokenNumber = (lastEntry?.tokenNumber || 0) + 1;
 
-        const newQueueEntry = await prisma.oPDQueue.create({
+        const newQueueEntry = await (prisma as any).oPDQueue.create({
             data: {
                 patientId,
                 doctorId,
@@ -89,6 +89,34 @@ export async function POST(req: Request) {
 
     } catch (error) {
         console.error("Error adding to OPD queue:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}
+
+// PUT: Update queue status (Call In / End Visit)
+export async function PUT(req: Request) {
+    try {
+        const session = await auth.api.getSession({ headers: req.headers });
+        if (!session?.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { id, status } = body;
+
+        if (!id || !status) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        const updatedEntry = await (prisma as any).oPDQueue.update({
+            where: { id },
+            data: { status }
+        });
+
+        return NextResponse.json(updatedEntry);
+
+    } catch (error) {
+        console.error("Error updating OPD queue:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

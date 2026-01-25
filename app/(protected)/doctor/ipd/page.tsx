@@ -55,6 +55,103 @@ export default function DoctorIPDPage() {
         }
     };
 
+    const [medicationForm, setMedicationForm] = useState({ name: "", dosage: "", frequency: "", duration: "" });
+    const [vitalsForm, setVitalsForm] = useState({ bpSystolic: "", bpDiastolic: "", pulse: "", temperature: "", spO2: "" });
+    const [noteContent, setNoteContent] = useState("");
+    const [selectedLabTest, setSelectedLabTest] = useState("CBC");
+
+    const saveVitals = async () => {
+        if (!selectedPatient) return;
+        try {
+            const res = await fetch("/api/vitals", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    encounterId: selectedPatient.encounterId,
+                    patientId: selectedPatient.patientId,
+                    ...vitalsForm
+                })
+            });
+            if (res.ok) {
+                alert("Vitals saved successfully");
+                setVitalsForm({ bpSystolic: "", bpDiastolic: "", pulse: "", temperature: "", spO2: "" });
+            }
+        } catch (error) {
+            console.error("Failed to save vitals", error);
+        }
+    };
+
+    const saveNote = async () => {
+        if (!selectedPatient) return;
+        try {
+            const res = await fetch("/api/clinical-notes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    encounterId: selectedPatient.encounterId,
+                    patientId: selectedPatient.patientId,
+                    content: noteContent,
+                    noteType: "progress"
+                })
+            });
+            if (res.ok) {
+                alert("Note saved successfully");
+                setNoteContent("");
+            }
+        } catch (error) {
+            console.error("Failed to save note", error);
+        }
+    };
+
+    const addMedication = async () => {
+        if (!selectedPatient) return;
+        try {
+            const res = await fetch("/api/prescriptions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    encounterId: selectedPatient.encounterId,
+                    patientId: selectedPatient.patientId,
+                    medicationName: medicationForm.name,
+                    dosage: medicationForm.dosage,
+                    frequency: medicationForm.frequency,
+                    duration: medicationForm.duration
+                })
+            });
+            if (res.ok) {
+                alert("Medication added successfully");
+                setMedicationForm({ name: "", dosage: "", frequency: "", duration: "" });
+            }
+        } catch (error) {
+            console.error("Failed to add medication", error);
+        }
+    };
+
+    const orderLabTest = async () => {
+        if (!selectedPatient) return;
+        try {
+            // For IPD, we create an order with status 'ordered' (active)
+            const res = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    encounterId: selectedPatient.encounterId,
+                    patientId: selectedPatient.patientId,
+                    orderType: "lab",
+                    orderCode: selectedLabTest,
+                    orderName: selectedLabTest,
+                    orderedBy: session?.user?.name || "Doctor",
+                    status: "ordered"
+                })
+            });
+            if (res.ok) {
+                alert("Lab test ordered successfully");
+            }
+        } catch (error) {
+            console.error("Failed to order lab test", error);
+        }
+    };
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
@@ -202,14 +299,138 @@ export default function DoctorIPDPage() {
                                             </TabsContent>
 
                                             <TabsContent value="vitals" className="mt-0">
-                                                <div className="h-[400px] flex items-center justify-center border rounded-md bg-muted/5">
-                                                    Vitals Chart Component Placeholder
+                                                <div className="space-y-4 max-w-2xl">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">BP (Systolic/Diastolic)</label>
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                    placeholder="120"
+                                                                    value={vitalsForm.bpSystolic}
+                                                                    onChange={(e) => setVitalsForm({ ...vitalsForm, bpSystolic: e.target.value })}
+                                                                />
+                                                                <span className="self-center">/</span>
+                                                                <input
+                                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                    placeholder="80"
+                                                                    value={vitalsForm.bpDiastolic}
+                                                                    onChange={(e) => setVitalsForm({ ...vitalsForm, bpDiastolic: e.target.value })}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Pulse (bpm)</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="72"
+                                                                value={vitalsForm.pulse}
+                                                                onChange={(e) => setVitalsForm({ ...vitalsForm, pulse: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Temperature (°F)</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="98.6"
+                                                                value={vitalsForm.temperature}
+                                                                onChange={(e) => setVitalsForm({ ...vitalsForm, temperature: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">SpO2 (%)</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="98"
+                                                                value={vitalsForm.spO2}
+                                                                onChange={(e) => setVitalsForm({ ...vitalsForm, spO2: e.target.value })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <Button onClick={saveVitals}>Record Vitals</Button>
                                                 </div>
                                             </TabsContent>
 
                                             <TabsContent value="medications" className="mt-0">
-                                                <div className="h-[400px] flex items-center justify-center border rounded-md bg-muted/5">
-                                                    Active Medications List Placeholder
+                                                <div className="space-y-4 max-w-2xl">
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Medicine Name</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="e.g. Paracetamol"
+                                                                value={medicationForm.name}
+                                                                onChange={(e) => setMedicationForm({ ...medicationForm, name: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Dosage</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="e.g. 500mg"
+                                                                value={medicationForm.dosage}
+                                                                onChange={(e) => setMedicationForm({ ...medicationForm, dosage: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Frequency</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="e.g. TDS"
+                                                                value={medicationForm.frequency}
+                                                                onChange={(e) => setMedicationForm({ ...medicationForm, frequency: e.target.value })}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium">Duration</label>
+                                                            <input
+                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                                placeholder="e.g. 5 days"
+                                                                value={medicationForm.duration}
+                                                                onChange={(e) => setMedicationForm({ ...medicationForm, duration: e.target.value })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <Button onClick={addMedication}>Add Medication</Button>
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="notes" className="mt-0">
+                                                <div className="space-y-4 max-w-2xl">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium">Progress Note</label>
+                                                        <textarea
+                                                            className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                            placeholder="Patient condition, plan updates..."
+                                                            value={noteContent}
+                                                            onChange={(e) => setNoteContent(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <Button onClick={saveNote}>Save Note</Button>
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="labs" className="mt-0">
+                                                <div className="space-y-4 max-w-2xl">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium">Select Test to Order</label>
+                                                        <select
+                                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                            value={selectedLabTest}
+                                                            onChange={(e) => setSelectedLabTest(e.target.value)}
+                                                        >
+                                                            <option value="CBC">Complete Blood Count (CBC)</option>
+                                                            <option value="LIPID">Lipid Profile</option>
+                                                            <option value="LFT">Liver Function Test</option>
+                                                            <option value="KFT">Kidney Function Test</option>
+                                                            <option value="XRAY">X-Ray Chest PA</option>
+                                                            <option value="USG">Ultrasound Abdomen</option>
+                                                        </select>
+                                                    </div>
+                                                    <Button onClick={orderLabTest}>Order Test (Immediate)</Button>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Note: IPD orders are processed immediately by the lab.
+                                                    </p>
                                                 </div>
                                             </TabsContent>
                                         </div>

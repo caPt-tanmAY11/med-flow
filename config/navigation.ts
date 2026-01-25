@@ -38,10 +38,22 @@ export const navigationConfig: NavGroup[] = [
     {
         title: 'Patient Portal',
         items: [
-             {
+            {
                 title: 'My Health',
                 href: '/patient/dashboard',
                 icon: Heart,
+                roles: ['PATIENT'],
+            },
+            {
+                title: 'Medical History',
+                href: '/patient/history',
+                icon: FileText,
+                roles: ['PATIENT'],
+            },
+            {
+                title: 'OPD Status',
+                href: '/patient/opd',
+                icon: Users,
                 roles: ['PATIENT'],
             },
             {
@@ -69,6 +81,18 @@ export const navigationConfig: NavGroup[] = [
             {
                 title: 'SmartPanjikaran',
                 href: '/registration',
+                icon: UserPlus,
+                roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
+            },
+            {
+                title: 'IPD Admission',
+                href: '/registration/ipd',
+                icon: Bed,
+                roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
+            },
+            {
+                title: 'Patient Assignment',
+                href: '/patient-assign',
                 icon: UserPlus,
                 roles: ['ADMIN', 'FRONT_DESK', 'NURSE', 'NURSING_ADMIN'],
             },
