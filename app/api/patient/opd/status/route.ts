@@ -34,7 +34,7 @@ export async function GET(req: Request) {
                 }
             },
             include: {
-                patient: true
+                Patient: true
             }
         });
 

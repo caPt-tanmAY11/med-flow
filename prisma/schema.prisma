@@ -55,13 +55,7 @@ model user {
   account       account[]
   session       session[]
   opdQueues     OPDQueue[]
-  role          ROLE       @default(DOCTOR)
-  uhid          String?    @unique
-  department    String?
-  OPDQueue      OPDQueue[]
-  userRoles     UserRole[]
-  account       account[]
-  session       session[]
+
 }
 
 model verification {
@@ -327,7 +321,7 @@ model ShiftHandover {
   acknowledgedAt DateTime?
   criticalAlerts Json?
   handoverNotes  String?
-  handoverNotes  String?
+
 
   @@index([encounterId])
   @@index([handoverAt])
