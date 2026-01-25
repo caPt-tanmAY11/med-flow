@@ -1,5 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+
+const execAsync = promisify(exec);
+
+// Helper to generate barcode using Python script
+async function generateBarcodeWithPython(
+    labCode: string,
+    patientId: string,
+    testCode: string,
+    sequence: number
+): Promise<{ barcode: string; verification_hash: string; is_valid: boolean }> {
+    const scriptPath = path.join(process.cwd(), 'scripts', 'generate_barcode.py');
+
+    try {
+        const { stdout } = await execAsync(
+            `python "${scriptPath}" -l "${labCode}" -p "${patientId}" -t "${testCode}" -s ${sequence}`
+        );
+
+        const result = JSON.parse(stdout);
+        return {
+            barcode: result.barcode,
+            verification_hash: result.verification_hash,
+            is_valid: result.is_valid
+        };
+    } catch (error) {
+        console.error('Python barcode generation failed, using fallback:', error);
+        // Fallback to simple generation if Python fails
+        const date = new Date();
+        const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
+        const timeStr = date.toTimeString().slice(0, 8).replace(/:/g, '');
+        const patientShort = patientId.replace(/\D/g, '').slice(-6).padStart(6, '0');
+        const seq = String(sequence).padStart(4, '0');
+        const barcode = `${labCode}-${dateStr}${timeStr}-${patientShort}-${testCode.toUpperCase().slice(0, 4)}-${seq}-0`;
+
+        return { barcode, verification_hash: 'FALLBACK', is_valid: true };
+    }
+}
 
 // POST /api/lab-technician/barcode - Generate unique barcode
 export async function POST(request: NextRequest) {
@@ -32,12 +71,8 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Generate unique barcode
-        // Format: {LAB_CODE}-{PATIENT_UHID}-{TEST_CODE}-{YYMMDD}-{SEQ}
-        const date = new Date();
-        const dateStr = date.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
-
         // Get sequence number for today
+        const date = new Date();
         const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
@@ -51,15 +86,21 @@ export async function POST(request: NextRequest) {
             },
         });
 
-        const seq = String(todayCount + 1).padStart(4, '0');
         const labCode = order.test.type === 'RADIOLOGY' ? 'RAD' : 'LAB';
-        const barcode = `${labCode}-${order.patient.uhid.replace('UHID-', '')}-${order.test.code}-${dateStr}-${seq}`;
+
+        // Generate barcode using Python script
+        const barcodeResult = await generateBarcodeWithPython(
+            labCode,
+            order.patient.uhid,
+            order.test.code,
+            todayCount + 1
+        );
 
         // Update order with barcode
         const updatedOrder = await prisma.labTestOrder.update({
             where: { id: orderId },
             data: {
-                barcode,
+                barcode: barcodeResult.barcode,
                 status: order.status === 'pending' ? 'sample_collected' : order.status,
             },
             include: {
@@ -72,7 +113,9 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             data: {
-                barcode,
+                barcode: barcodeResult.barcode,
+                verification_hash: barcodeResult.verification_hash,
+                is_valid: barcodeResult.is_valid,
                 order: updatedOrder,
             },
             message: 'Barcode generated successfully',
