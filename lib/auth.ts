@@ -16,6 +16,10 @@ export const auth = betterAuth({
             uhid: {
                 type: "string",
                 required: false
+            },
+            department: {
+                type: "string",
+                required: false
             }
         }
     },

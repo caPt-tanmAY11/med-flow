@@ -30,7 +30,18 @@ const STAFF_ROLES = [
     { value: "NURSING_ADMIN", label: "Nursing Admin" },
 ] as const;
 
+const DEPARTMENTS = [
+  { value: "GENERAL_MEDICINE", label: "General Medicine" },
+  { value: "CARDIOLOGY", label: "Cardiology" },
+  { value: "ORTHOPEDICS", label: "Orthopedics" },
+  { value: "PEDIATRICS", label: "Pediatrics" },
+  { value: "DERMATOLOGY", label: "Dermatology" },
+  { value: "GYNECOLOGY", label: "Gynecology" },
+  { value: "ENT", label: "ENT" },
+] as const;
+
 type StaffRole = typeof STAFF_ROLES[number]["value"];
+type Department = typeof DEPARTMENTS[number]["value"];
 
 export default function StaffRegisterPage() {
     const router = useRouter();
@@ -39,6 +50,7 @@ export default function StaffRegisterPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState<StaffRole | "">("");
+    const [department, setDepartment] = useState<Department | "">("");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -67,6 +79,7 @@ export default function StaffRegisterPage() {
                 email,
                 password,
                 role,
+                department: department || undefined,
             });
 
             if (result.error) {
@@ -208,6 +221,27 @@ export default function StaffRegisterPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+
+                            {(role === "DOCTOR" || role === "NURSE" || role === "LAB_TECHNICIAN" || role === "PHARMACIST" || role === "NURSING_ADMIN") && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="department">Department</Label>
+                                    <Select value={department} onValueChange={(value: Department) => setDepartment(value)}>
+                                        <SelectTrigger className="w-full h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all rounded-xl">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="w-4 h-4 text-slate-400" />
+                                                <SelectValue placeholder="Select your department" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {DEPARTMENTS.map((deptOption) => (
+                                                <SelectItem key={deptOption.value} value={deptOption.value}>
+                                                    {deptOption.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
