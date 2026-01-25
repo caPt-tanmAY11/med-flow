@@ -42,6 +42,12 @@ export default function PatientAssignPage() {
     const [ward, setWard] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // OCR State
+    const [file, setFile] = useState<File | null>(null);
+    const [fileType, setFileType] = useState<"prescription" | "referral">("prescription");
+    const [ocrText, setOcrText] = useState("");
+    const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+
     // Data State
     const [doctors, setDoctors] = useState<Doctor[]>([]);
 
@@ -91,11 +97,62 @@ export default function PatientAssignPage() {
         setSuggestions([]);
     };
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const selectedFile = e.target.files[0];
+            setFile(selectedFile);
+
+            // Auto-process OCR
+            setIsProcessingOCR(true);
+            try {
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const base64 = event.target?.result as string;
+                    const res = await fetch("/api/ocr", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: base64 })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            setOcrText(data.text);
+                            toast({
+                                title: "OCR Successful",
+                                description: "Text extracted from document.",
+                            });
+                        }
+                    }
+                };
+                reader.readAsDataURL(selectedFile);
+            } catch (error) {
+                console.error("OCR Failed", error);
+                toast({
+                    title: "OCR Failed",
+                    description: "Could not extract text.",
+                    variant: "destructive"
+                });
+            } finally {
+                setIsProcessingOCR(false);
+            }
+        }
+    };
+
     const handleSubmit = async () => {
         if (!selectedPatient) return;
         setLoading(true);
 
         try {
+            let fileData = null;
+            if (file) {
+                fileData = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(file);
+                });
+            }
+
             const res = await fetch("/api/encounters", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -106,6 +163,9 @@ export default function PatientAssignPage() {
                     primaryDoctorId: visitType === 'OPD' ? selectedDoctor : undefined,
                     triageColor: visitType === 'EMERGENCY' ? priority : undefined,
                     ward: visitType === 'IPD' ? ward : undefined,
+                    fileData,
+                    fileType,
+                    extractedText: ocrText
                 })
             });
 
@@ -123,6 +183,8 @@ export default function PatientAssignPage() {
                 setSelectedDoctor("");
                 setPriority("GREEN");
                 setWard("");
+                setFile(null);
+                setOcrText("");
             } else {
                 toast({
                     title: "Assignment Failed",
@@ -303,6 +365,52 @@ export default function PatientAssignPage() {
                                     </select>
                                 </div>
                             )}
+
+                            {/* Document Upload Section */}
+                            <div className="space-y-4 pt-4 border-t">
+                                <h3 className="text-sm font-semibold flex items-center gap-2">
+                                    <Stethoscope className="h-4 w-4" />
+                                    Clinical Documents (Optional)
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Document Type</Label>
+                                        <select
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            value={fileType}
+                                            onChange={(e) => setFileType(e.target.value as any)}
+                                        >
+                                            <option value="prescription">Prescription</option>
+                                            <option value="referral">Referral Note</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Upload Image</Label>
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                {isProcessingOCR && (
+                                    <div className="text-sm text-muted-foreground animate-pulse">
+                                        Processing document with OCR...
+                                    </div>
+                                )}
+
+                                {ocrText && (
+                                    <div className="space-y-2">
+                                        <Label>Extracted Text</Label>
+                                        <textarea
+                                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                            value={ocrText}
+                                            onChange={(e) => setOcrText(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="pt-4">
                                 <Button
