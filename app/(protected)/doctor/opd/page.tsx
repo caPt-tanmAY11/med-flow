@@ -42,7 +42,37 @@ export default function DoctorOPDPage() {
 
     useEffect(() => {
         fetchQueue();
+        fetchActivePatient();
     }, []);
+
+    const fetchActivePatient = async () => {
+        try {
+            // Fetch patient currently IN_PROGRESS for this doctor
+            const res = await fetch("/api/opd/queue?status=IN_PROGRESS");
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    const activeQueueItem = data[0]; // Should only be one active patient per doctor
+
+                    // Now we need to find the active encounter to get the correct ID
+                    // The queue item has patientId
+                    const encRes = await fetch(`/api/encounters?patientId=${activeQueueItem.Patient.id}&type=OPD&status=ACTIVE`);
+                    const encData = await encRes.json();
+                    const encounter = encData.data?.[0];
+
+                    if (encounter) {
+                        setCurrentPatient({
+                            ...activeQueueItem,
+                            id: encounter.id // Restore with Encounter ID
+                        });
+                        toast({ title: "Session Restored", description: `Resumed session with ${activeQueueItem.Patient.name}` });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Failed to restore active patient", error);
+        }
+    };
 
     const fetchQueue = async () => {
         try {
@@ -94,8 +124,10 @@ export default function DoctorOPDPage() {
 
             // Remove from waiting queue list locally
             setQueue(queue.filter(q => q.id !== item.id));
+            toast({ title: "Patient Called In", description: `${item.Patient.name} is now active.` });
         } catch (error) {
             console.error("Failed to call patient", error);
+            toast({ title: "Error", description: "Failed to update queue status", variant: "destructive" });
         }
     };
 
@@ -411,8 +443,13 @@ export default function DoctorOPDPage() {
                 <Card className="md:col-span-1 h-[calc(100vh-12rem)]">
                     <CardHeader>
                         <CardTitle className="flex justify-between items-center">
-                            <span>Waiting Queue</span>
-                            <Badge variant="secondary">{queue.length}</Badge>
+                            <div className="flex items-center gap-2">
+                                <span>Waiting Queue</span>
+                                <Badge variant="secondary">{queue.length}</Badge>
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={fetchQueue} disabled={loading} className="h-8 w-8 p-0">
+                                <Clock className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            </Button>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">

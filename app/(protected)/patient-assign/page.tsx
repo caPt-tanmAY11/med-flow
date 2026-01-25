@@ -16,6 +16,12 @@ interface Patient {
     gender: string;
     dob: string;
     contact: string;
+    encounters?: Array<{
+        id: string;
+        type: string;
+        department: string;
+        primaryDoctorId: string;
+    }>;
 }
 
 interface Doctor {
@@ -100,18 +106,10 @@ export default function PatientAssignPage() {
         setSuggestions([]);
         setActiveEncounterWarning(null);
 
-        // Check if patient has any active encounters
-        try {
-            const res = await fetch(`/api/encounters?patientId=${patient.id}&status=ACTIVE`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.data && data.data.length > 0) {
-                    const types = data.data.map((e: { type: string }) => e.type).join(', ');
-                    setActiveEncounterWarning(`This patient already has active visit(s): ${types}. End those before creating a new one of the same type.`);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to check active encounters", error);
+        // Check if patient has any active encounters from the search result
+        if (patient.encounters && patient.encounters.length > 0) {
+            const types = patient.encounters.map(e => e.type).join(', ');
+            setActiveEncounterWarning(`This patient already has active visit(s): ${types}. End those before creating a new one of the same type.`);
         }
     };
 
@@ -264,11 +262,22 @@ export default function PatientAssignPage() {
                                     {suggestions.map(patient => (
                                         <div
                                             key={patient.id}
-                                            className="p-3 hover:bg-muted cursor-pointer text-sm"
+                                            className="p-3 hover:bg-muted cursor-pointer text-sm flex justify-between items-center"
                                             onClick={() => handleSelectPatient(patient)}
                                         >
-                                            <div className="font-medium">{patient.name}</div>
-                                            <div className="text-xs text-muted-foreground">{patient.uhid}</div>
+                                            <div>
+                                                <div className="font-medium">{patient.name}</div>
+                                                <div className="text-xs text-muted-foreground">{patient.uhid}</div>
+                                            </div>
+                                            {patient.encounters && patient.encounters.length > 0 && (
+                                                <div className="flex gap-1">
+                                                    {patient.encounters.map(e => (
+                                                        <span key={e.id} className="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 text-[10px] rounded-full font-medium border border-yellow-200">
+                                                            {e.type}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

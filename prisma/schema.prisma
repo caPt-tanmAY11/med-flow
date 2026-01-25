@@ -1452,7 +1452,7 @@ model LabTest {
 }
 
 model LabTestOrder {
-  id              String    @id
+  id              String    @id @default(uuid())
   patientId       String
   testId          String
   status          String    @default("cart")
@@ -1520,7 +1520,7 @@ model OPDQueue {
 }
 
 model PatientImplant {
-  id           String    @id
+  id           String    @id @default(uuid())
   patientId    String
   type         String
   location     String

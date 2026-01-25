@@ -164,12 +164,7 @@ export const navigationConfig: NavGroup[] = [
     {
         title: 'LabLink',
         items: [
-            {
-                title: 'Lab & Radiology',
-                href: '/lab',
-                icon: FlaskConical,
-                roles: ['ADMIN', 'DOCTOR', 'NURSE', 'LAB_PERSON', 'NURSING_ADMIN'],
-            },
+
             {
                 title: 'Lab Patient Portal',
                 href: '/lab-patient',

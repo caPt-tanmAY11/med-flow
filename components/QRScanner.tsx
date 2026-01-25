@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, Upload, X, Loader2, QrCode, AlertCircle } from 'lucide-react';
+import { Camera, Upload, X, Loader2, QrCode, AlertCircle, ScanLine, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AadhaarQRData } from '@/lib/aadhaar-qr';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
+import { cn } from '@/lib/utils';
 
 interface QRScannerProps {
     onScan: (data: AadhaarQRData) => void;
@@ -260,48 +261,72 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
             <div className="bg-background rounded-xl max-w-lg w-full overflow-hidden shadow-2xl scale-100 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b">
-                    <div className="flex items-center gap-2">
-                        <QrCode className="w-5 h-5 text-primary" />
-                        <h2 className="text-lg font-semibold">Scan Aadhaar QR Code</h2>
+                <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-muted/50 to-transparent">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-primary/15 rounded-xl ring-1 ring-primary/20 shadow-inner">
+                            <QrCode className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold tracking-tight">Scan Aadhaar</h2>
+                            <p className="text-xs text-muted-foreground font-medium">Secure QR verification</p>
+                        </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={handleClose}>
-                        <X className="w-4 h-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleClose}
+                        className="rounded-full h-10 w-10 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                        <X className="w-5 h-5" />
                     </Button>
                 </div>
 
                 {/* Content */}
                 <div className="p-6">
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            <span className="text-sm">{error}</span>
+                        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3 text-destructive animate-in slide-in-from-top-2 shadow-sm">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm font-medium leading-relaxed">{error}</div>
                         </div>
                     )}
 
                     {mode === 'select' && (
-                        <div className="space-y-4">
-                            <p className="text-center text-muted-foreground mb-6">
-                                Scan the QR code on the back of the Aadhaar card to auto-fill registration details
-                            </p>
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-8 py-2">
+                            <div className="text-center space-y-2">
+                                <h3 className="font-semibold text-lg">Choose Input Method</h3>
+                                <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
+                                    Scan the secure QR code found on the back of the Aadhaar card
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5">
                                 <button
                                     onClick={startScanner}
-                                    className="p-6 border-2 border-dashed rounded-xl hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center gap-3"
+                                    className="group relative p-6 border rounded-3xl hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 flex flex-col items-center gap-4 text-center shadow-sm hover:shadow-md"
                                 >
-                                    <Camera className="w-10 h-10 text-primary" />
-                                    <span className="font-medium">Use Camera</span>
-                                    <span className="text-xs text-muted-foreground">Point at QR code</span>
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                                        <Camera className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <span className="font-bold block tracking-tight">Camera</span>
+                                        <span className="text-xs text-muted-foreground font-medium">Scan directly</span>
+                                    </div>
                                 </button>
+
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="p-6 border-2 border-dashed rounded-xl hover:border-primary hover:bg-primary/5 transition-colors flex flex-col items-center gap-3"
+                                    className="group relative p-6 border rounded-3xl hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 flex flex-col items-center gap-4 text-center shadow-sm hover:shadow-md"
                                 >
-                                    <Upload className="w-10 h-10 text-primary" />
-                                    <span className="font-medium">Upload Image</span>
-                                    <span className="text-xs text-muted-foreground">JPG, PNG</span>
+                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                                        <Upload className="w-8 h-8 text-primary" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <span className="font-bold block tracking-tight">Upload</span>
+                                        <span className="text-xs text-muted-foreground font-medium">From gallery</span>
+                                    </div>
                                 </button>
                             </div>
+
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -313,43 +338,60 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                     )}
 
                     {mode === 'scanning' && (
-                        <div className="space-y-4">
-                            <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden">
+                        <div className="space-y-6">
+                            <div className="relative w-full aspect-square bg-black rounded-3xl overflow-hidden shadow-2xl ring-4 ring-black/5">
                                 <video
                                     ref={videoRef}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover opacity-90"
                                 />
-                                <div className="absolute inset-0 pointer-events-none border-2 border-white/50 m-8 rounded-lg"></div>
+                                {/* Scanning Overlay */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                    {/* Darken outer area to focus center */}
+                                    <div className="absolute inset-0 border-[40px] border-black/40 rounded-3xl backdrop-blur-[2px]"></div>
+
+                                    {/* Corners */}
+                                    <div className="absolute top-10 left-10 w-16 h-16 border-l-4 border-t-4 border-primary rounded-tl-2xl shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
+                                    <div className="absolute top-10 right-10 w-16 h-16 border-r-4 border-t-4 border-primary rounded-tr-2xl shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
+                                    <div className="absolute bottom-10 left-10 w-16 h-16 border-l-4 border-b-4 border-primary rounded-bl-2xl shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
+                                    <div className="absolute bottom-10 right-10 w-16 h-16 border-r-4 border-b-4 border-primary rounded-br-2xl shadow-[0_0_15px_rgba(var(--primary),0.5)]"></div>
+
+                                    {/* Scanning Line */}
+                                    <div className="absolute top-10 left-10 right-10 h-0.5 bg-primary shadow-[0_0_20px_rgba(var(--primary),0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                                </div>
                             </div>
-                            <p className="text-center text-sm text-muted-foreground">
-                                Position the QR code within the frame
-                            </p>
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={() => { stopScanner(); setMode('select'); }}
-                            >
-                                Cancel
-                            </Button>
+
+                            <div className="flex items-center justify-between gap-4 px-2">
+                                <p className="text-sm font-medium text-muted-foreground animate-pulse flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-primary"></span>
+                                    Align QR code within frame...
+                                </p>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => { stopScanner(); setMode('select'); }}
+                                    className="rounded-full px-6 font-medium"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
                         </div>
                     )}
 
                     {mode === 'processing' && (
-                        <div className="py-12 text-center space-y-4">
-                            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-                            <div>
-                                <p className="font-medium">Verifying & Decoding...</p>
-                                <p className="text-sm text-muted-foreground">Checking digital signature</p>
+                        <div className="py-20 text-center space-y-8">
+                            <div className="relative mx-auto w-24 h-24">
+                                <div className="absolute inset-0 rounded-full border-[6px] border-primary/10"></div>
+                                <div className="absolute inset-0 rounded-full border-[6px] border-primary border-t-transparent animate-spin"></div>
+                                <ScanLine className="absolute inset-0 m-auto w-10 h-10 text-primary animate-pulse" />
+                            </div>
+                            <div className="space-y-3">
+                                <h3 className="text-2xl font-bold tracking-tight">Verifying Details</h3>
+                                <p className="text-sm text-muted-foreground max-w-[240px] mx-auto leading-relaxed">
+                                    Decoding secure Aadhaar signature and extracting demographics...
+                                </p>
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Footer hint */}
-                <div className="px-6 pb-4">
-                    <p className="text-xs text-muted-foreground text-center">
-                        📱 The QR code is on the back of the Aadhaar card, near the photo
-                    </p>
                 </div>
             </div>
         </div>,

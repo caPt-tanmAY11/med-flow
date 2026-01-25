@@ -35,7 +35,7 @@ interface LabTest {
 
 interface CartItem {
     id: string;
-    test: LabTest;
+    LabTest: LabTest;
     createdAt: string;
 }
 
@@ -50,12 +50,12 @@ interface ResultField {
 }
 
 interface OrderTest extends LabTest {
-    resultFields: ResultField[];
+    LabTestResultField: ResultField[];
 }
 
 interface Order {
     id: string;
-    test: OrderTest;
+    LabTest: OrderTest;
     status: string;
     barcode: string | null;
     resultedAt: string | null;
@@ -251,12 +251,12 @@ export default function LabPatientPage() {
     };
 
     // Calculate cart total
-    const cartTotal = cart.reduce((sum, item) => sum + (item.test.discountedPrice || item.test.price), 0);
-    const cartOriginalTotal = cart.reduce((sum, item) => sum + item.test.price, 0);
+    const cartTotal = cart.reduce((sum, item) => sum + (item.LabTest.discountedPrice || item.LabTest.price), 0);
+    const cartOriginalTotal = cart.reduce((sum, item) => sum + item.LabTest.price, 0);
     const cartDiscount = cartOriginalTotal - cartTotal;
 
     // Check if test is in cart
-    const isInCart = (testId: string) => cart.some(item => item.test.id === testId);
+    const isInCart = (testId: string) => cart.some(item => item.LabTest.id === testId);
 
     return (
         <div className="space-y-6 animate-fade-in pb-24">
@@ -440,12 +440,12 @@ export default function LabPatientPage() {
                             {cart.map((item) => (
                                 <div key={item.id} className="floating-card p-4 flex items-center justify-between">
                                     <div className="flex-1">
-                                        <h3 className="font-medium">{item.test.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{item.test.code}</p>
+                                        <h3 className="font-medium">{item.LabTest.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{item.LabTest.code}</p>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="font-semibold text-primary">
-                                            ₹{item.test.discountedPrice || item.test.price}
+                                            ₹{item.LabTest.discountedPrice || item.LabTest.price}
                                         </span>
                                         <Button
                                             variant="ghost"
@@ -499,8 +499,8 @@ export default function LabPatientPage() {
                             <div key={order.id} className="floating-card p-4">
                                 <div className="flex items-start justify-between mb-4">
                                     <div>
-                                        <h3 className="font-medium">{order.test.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{order.test.code}</p>
+                                        <h3 className="font-medium">{order.LabTest.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{order.LabTest.code}</p>
                                         {order.barcode && (
                                             <p className="text-xs font-mono mt-1 bg-muted px-2 py-1 rounded inline-block">
                                                 {order.barcode}
@@ -683,8 +683,8 @@ export default function LabPatientPage() {
                             <div className="text-sm space-y-2 p-4 bg-muted/50 rounded-lg">
                                 {cart.map((item) => (
                                     <div key={item.id} className="flex justify-between">
-                                        <span>{item.test.name}</span>
-                                        <span>₹{item.test.discountedPrice || item.test.price}</span>
+                                        <span>{item.LabTest.name}</span>
+                                        <span>₹{item.LabTest.discountedPrice || item.LabTest.price}</span>
                                     </div>
                                 ))}
                                 <div className="flex justify-between font-semibold pt-2 border-t">
@@ -780,7 +780,7 @@ export default function LabPatientPage() {
                         <div className="flex items-center justify-between mb-6">
                             <div>
                                 <h2 className="text-lg font-semibold">Lab Report</h2>
-                                <p className="text-sm text-muted-foreground">{selectedResult.test.name}</p>
+                                <p className="text-sm text-muted-foreground">{selectedResult.LabTest.name}</p>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => setSelectedResult(null)}>
                                 <X className="w-4 h-4" />
@@ -792,7 +792,7 @@ export default function LabPatientPage() {
                             <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Test Code:</span>
-                                    <span className="font-mono">{selectedResult.test.code}</span>
+                                    <span className="font-mono">{selectedResult.LabTest.code}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Patient:</span>
@@ -830,7 +830,7 @@ export default function LabPatientPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
-                                                {(selectedResult.test.resultFields || []).map((field) => {
+                                                {(selectedResult.LabTest.LabTestResultField || []).map((field) => {
                                                     const value = selectedResult.resultData?.[field.fieldName];
                                                     const numValue = typeof value === 'number' ? value : parseFloat(value as string);
                                                     const isAbnormal = !isNaN(numValue) && field.normalMin !== null && field.normalMax !== null &&
@@ -902,7 +902,7 @@ export default function LabPatientPage() {
                                                 printWindow.document.write(`
                                                     <html>
                                                         <head>
-                                                            <title>Lab Report - ${selectedResult.test.name}</title>
+                                                            <title>Lab Report - ${selectedResult.LabTest.name}</title>
                                                             <style>
                                                                 body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
                                                                 h1 { font-size: 24px; margin-bottom: 10px; }
@@ -923,7 +923,7 @@ export default function LabPatientPage() {
                                                         </head>
                                                         <body>
                                                             <h1>Lab Report</h1>
-                                                            <h2>${selectedResult.test.name} (${selectedResult.test.code})</h2>
+                                                            <h2>${selectedResult.LabTest.name} (${selectedResult.LabTest.code})</h2>
                                                             
                                                             <div class="header">
                                                                 <p><strong>Patient:</strong> ${patientName}</p>
@@ -945,7 +945,7 @@ export default function LabPatientPage() {
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    ${(selectedResult.test.resultFields || []).map(field => {
+                                                                    ${(selectedResult.LabTest.LabTestResultField || []).map(field => {
                                                     const value = selectedResult.resultData?.[field.fieldName];
                                                     const numValue = typeof value === 'number' ? value : parseFloat(value as string);
                                                     const isAbnormal = !isNaN(numValue) && field.normalMin !== null && field.normalMax !== null &&

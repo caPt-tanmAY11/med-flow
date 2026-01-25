@@ -17,25 +17,25 @@ export async function GET(request: NextRequest) {
                 status: 'cart',
             },
             include: {
-                test: true,
+                LabTest: true,
             },
             orderBy: { createdAt: 'desc' },
         });
 
         // Calculate totals
         const subtotal = cartItems.reduce((sum, item) => {
-            return sum + (item.test.discountedPrice || item.test.price);
+            return sum + (item.LabTest.discountedPrice || item.LabTest.price);
         }, 0);
 
         const totalDiscount = cartItems.reduce((sum, item) => {
-            return sum + (item.test.discountedPrice ? item.test.price - item.test.discountedPrice : 0);
+            return sum + (item.LabTest.discountedPrice ? item.LabTest.price - item.LabTest.discountedPrice : 0);
         }, 0);
 
         return NextResponse.json({
             data: cartItems,
             summary: {
                 itemCount: cartItems.length,
-                subtotal: cartItems.reduce((sum, item) => sum + item.test.price, 0),
+                subtotal: cartItems.reduce((sum, item) => sum + item.LabTest.price, 0),
                 discount: totalDiscount,
                 total: subtotal,
             },
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// DELETE /api/lab-tests/cart - Remove from cart
+// DELETE /api/lab-tests/cart -test Remove from cart
 export async function DELETE(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);

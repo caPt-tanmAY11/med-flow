@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         if (activeEncounter) {
             return NextResponse.json(
                 {
-                    error: `Patient already has an active ${data.type} encounter`,
+                    error: `Patient ${patient.name} already has an active ${data.type} encounter`,
                     existingEncounterId: activeEncounter.id,
                 },
                 { status: 409 }

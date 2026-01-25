@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
                 status: 'cart',
             },
             include: {
-                test: true,
+                LabTest: true,
             },
         });
 
@@ -35,16 +35,16 @@ export async function POST(request: NextRequest) {
 
         // Check for radiology tests that may conflict with implants
         if (data.hasImplants) {
-            const radiologyTests = cartItems.filter(item => item.test.type === 'RADIOLOGY');
+            const radiologyTests = cartItems.filter(item => item.LabTest.type === 'RADIOLOGY');
             const mriCTTests = radiologyTests.filter(item =>
-                item.test.code.includes('MRI') || item.test.code.includes('CT')
+                item.LabTest.code.includes('MRI') || item.LabTest.code.includes('CT')
             );
 
             if (mriCTTests.length > 0 && !data.implantDetails) {
                 return NextResponse.json({
                     error: 'Implant details are required for MRI/CT scans. Please provide details for safety assessment.',
                     requiresImplantDetails: true,
-                    affectedTests: mriCTTests.map(t => t.test.name),
+                    affectedTests: mriCTTests.map(t => t.LabTest.name),
                 }, { status: 400 });
             }
         }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
                         scheduledDate: data.scheduledDate ? new Date(data.scheduledDate) : null,
                     },
                     include: {
-                        test: true,
+                        LabTest: true,
                     },
                 })
             )
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
         // Calculate total
         const total = cartItems.reduce((sum, item) => {
-            return sum + (item.test.discountedPrice || item.test.price);
+            return sum + (item.LabTest.discountedPrice || item.LabTest.price);
         }, 0);
 
         // Create bill for lab tests in PaisaTracker
@@ -103,11 +103,11 @@ export async function POST(request: NextRequest) {
             const encounter = await prisma.encounter.create({
                 data: {
                     patientId: data.patientId,
-                    encounterType: 'LAB',
-                    status: 'in_progress',
+                    type: 'OPD',
+                    status: 'ACTIVE',
                     department: 'LAB_SERVICES',
-                    chiefComplaint: `Lab Tests: ${cartItems.map(i => i.test.name).join(', ')}`,
-                    startTime: new Date(),
+                    triageNotes: `Lab Tests: ${cartItems.map(i => i.LabTest.name).join(', ')}`,
+                    arrivalTime: new Date(),
                 },
             });
 
@@ -143,12 +143,12 @@ export async function POST(request: NextRequest) {
                     items: {
                         create: cartItems.map(item => ({
                             category: 'lab',
-                            department: item.test.type === 'RADIOLOGY' ? 'RADIOLOGY' : 'LAB_SERVICES',
-                            itemCode: item.test.code,
-                            description: item.test.name,
+                            department: item.LabTest.type === 'RADIOLOGY' ? 'RADIOLOGY' : 'LAB_SERVICES',
+                            itemCode: item.LabTest.code,
+                            description: item.LabTest.name,
                             quantity: 1,
-                            unitPrice: item.test.discountedPrice || item.test.price,
-                            totalPrice: item.test.discountedPrice || item.test.price,
+                            unitPrice: item.LabTest.discountedPrice || item.LabTest.price,
+                            totalPrice: item.LabTest.discountedPrice || item.LabTest.price,
                         })),
                     },
                 },

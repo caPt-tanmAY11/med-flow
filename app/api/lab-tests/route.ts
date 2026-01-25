@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
                 skip: (page - 1) * limit,
                 take: limit,
                 include: {
-                    resultFields: {
+                    LabTestResultField: {
                         orderBy: { sortOrder: 'asc' },
                     },
                 },
@@ -120,10 +120,10 @@ export async function POST(request: NextRequest) {
                 testId: data.testId,
                 status: 'cart',
                 scheduledDate: data.scheduledDate ? new Date(data.scheduledDate) : null,
-                notes: data.notes,
+                notes: data.notes ?? null,
             },
             include: {
-                test: true,
+                LabTest: true,
             },
         });
 

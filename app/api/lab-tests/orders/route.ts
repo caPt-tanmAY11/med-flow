@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
         const orders = await prisma.labTestOrder.findMany({
             where,
             include: {
-                test: {
+                LabTest: {
                     include: {
-                        resultFields: {
+                        LabTestResultField: {
                             orderBy: { sortOrder: 'asc' },
                         },
                     },
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         const ordersWithProgress = orders.map(order => {
             // Check if this test's bill is paid
             const relatedBill = patientBills.find(bill =>
-                bill.items.some((item: { itemCode: string | null }) => item.itemCode === order.test.code)
+                bill.items.some((item: { itemCode: string | null }) => item.itemCode === order.LabTest.code)
             );
             const isPaid = relatedBill ? relatedBill.status === 'paid' || relatedBill.balanceDue <= 0 : false;
 

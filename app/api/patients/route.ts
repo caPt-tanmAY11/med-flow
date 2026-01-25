@@ -79,6 +79,15 @@ export async function GET(request: NextRequest) {
                     _count: {
                         select: { encounters: true },
                     },
+                    encounters: {
+                        where: { status: 'ACTIVE' },
+                        select: {
+                            id: true,
+                            type: true,
+                            department: true,
+                            primaryDoctorId: true,
+                        }
+                    },
                     allergies: {
                         where: { isActive: true },
                         select: {
