@@ -20,7 +20,7 @@ export async function GET(req: Request) {
                 status: status,
             },
             include: {
-                patient: {
+                Patient: {
                     select: {
                         id: true,
                         name: true,
@@ -78,6 +78,7 @@ export async function POST(req: Request) {
 
         const newQueueEntry = await (prisma as any).oPDQueue.create({
             data: {
+                id: crypto.randomUUID(),
                 patientId,
                 doctorId,
                 tokenNumber: newTokenNumber,

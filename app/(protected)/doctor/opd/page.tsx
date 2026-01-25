@@ -7,13 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Clock, ArrowRight, Stethoscope } from "lucide-react";
+import { User, Clock, ArrowRight, Stethoscope, Upload, Image as ImageIcon, FileText, Loader2, X, Search } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { useCallback } from "react";
 
 interface QueueItem {
     id: string;
     tokenNumber: number;
     status: string;
-    patient: {
+    Patient: {
         id: string;
         name: string;
         uhid: string;
@@ -27,6 +30,14 @@ export default function DoctorOPDPage() {
     const [queue, setQueue] = useState<QueueItem[]>([]);
     const [currentPatient, setCurrentPatient] = useState<QueueItem | null>(null);
     const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+
+    // OCR State
+    const [prescriptionImage, setPrescriptionImage] = useState<string | null>(null);
+    const [prescriptionOcrText, setPrescriptionOcrText] = useState('');
+    const [noteImage, setNoteImage] = useState<string | null>(null);
+    const [noteOcrText, setNoteOcrText] = useState('');
+    const [ocrLoading, setOcrLoading] = useState(false);
 
     useEffect(() => {
         fetchQueue();
@@ -56,7 +67,7 @@ export default function DoctorOPDPage() {
             });
 
             // 2. Find Active Encounter for this patient
-            const encRes = await fetch(`/api/encounters?patientId=${item.patient.id}&type=OPD&status=ACTIVE`);
+            const encRes = await fetch(`/api/encounters?patientId=${item.Patient.id}&type=OPD&status=ACTIVE`);
             const encData = await encRes.json();
             const encounter = encData.data?.[0];
 
@@ -121,7 +132,7 @@ export default function DoctorOPDPage() {
             const qRes = await fetch(`/api/opd/queue?status=IN_PROGRESS`);
             if (qRes.ok) {
                 const qData = await qRes.json();
-                const qItem = qData.find((q: any) => q.patient.id === currentPatient.patient.id);
+                const qItem = qData.find((q: any) => q.Patient.id === currentPatient.Patient.id);
                 if (qItem) {
                     await fetch(`/api/opd/queue`, {
                         method: 'PUT',
@@ -139,10 +150,60 @@ export default function DoctorOPDPage() {
     };
 
     const [activeTab, setActiveTab] = useState("prescription");
-    const [medicationForm, setMedicationForm] = useState({ name: "", dosage: "", frequency: "", duration: "" });
+    const [medicationForm, setMedicationForm] = useState({ name: "", dosage: "", frequency: "", duration: "", route: "oral", instructions: "" });
     const [vitalsForm, setVitalsForm] = useState({ bpSystolic: "", bpDiastolic: "", pulse: "", temperature: "", spO2: "" });
     const [noteContent, setNoteContent] = useState("");
     const [selectedLabTest, setSelectedLabTest] = useState("CBC");
+
+    // Medication autocomplete
+    interface MedicationOption {
+        id: string;
+        name: string;
+        genericName?: string;
+    }
+    const [medicationSuggestions, setMedicationSuggestions] = useState<MedicationOption[]>([]);
+    const [medSearchLoading, setMedSearchLoading] = useState(false);
+    const [showMedSuggestions, setShowMedSuggestions] = useState(false);
+
+    const fetchMedications = useCallback(async (query: string) => {
+        if (query.length < 2) {
+            setMedicationSuggestions([]);
+            return;
+        }
+        setMedSearchLoading(true);
+        try {
+            const response = await fetch(`/api/doctor/medications?q=${encodeURIComponent(query)}`);
+            const result = await response.json();
+            const meds = [
+                ...(result.medications || []).map((m: any) => ({
+                    id: m.id,
+                    name: `${m.name} ${m.strength || ''} (${m.form || ''})`.trim(),
+                    genericName: m.genericName,
+                })),
+                ...(result.inventoryMeds || []).map((m: { id: string; name: string }) => ({
+                    id: m.id,
+                    name: m.name,
+                })),
+            ];
+            setMedicationSuggestions(meds);
+        } catch (error) {
+            console.error('Failed to fetch medications:', error);
+        } finally {
+            setMedSearchLoading(false);
+        }
+    }, []);
+
+    const handleMedicationNameChange = (value: string) => {
+        setMedicationForm({ ...medicationForm, name: value });
+        setShowMedSuggestions(true);
+        fetchMedications(value);
+    };
+
+    const selectMedication = (med: MedicationOption) => {
+        setMedicationForm({ ...medicationForm, name: med.name });
+        setMedicationSuggestions([]);
+        setShowMedSuggestions(false);
+    };
 
     const saveVitals = async () => {
         if (!currentPatient) return;
@@ -152,7 +213,7 @@ export default function DoctorOPDPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     encounterId: currentPatient.id,
-                    patientId: currentPatient.patient.id,
+                    patientId: currentPatient.Patient.id,
                     ...vitalsForm
                 })
             });
@@ -173,7 +234,7 @@ export default function DoctorOPDPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     encounterId: currentPatient.id,
-                    patientId: currentPatient.patient.id,
+                    patientId: currentPatient.Patient.id,
                     content: noteContent,
                     noteType: "progress"
                 })
@@ -189,25 +250,32 @@ export default function DoctorOPDPage() {
 
     const addMedication = async () => {
         if (!currentPatient) return;
+        if (!medicationForm.name || !medicationForm.dosage || !medicationForm.frequency) {
+            toast({ title: 'Error', description: 'Please fill in at least medication name, dosage, and frequency', variant: 'destructive' });
+            return;
+        }
         try {
             const res = await fetch("/api/prescriptions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     encounterId: currentPatient.id,
-                    patientId: currentPatient.patient.id,
+                    patientId: currentPatient.Patient.id,
                     medicationName: medicationForm.name,
                     dosage: medicationForm.dosage,
                     frequency: medicationForm.frequency,
-                    duration: medicationForm.duration
+                    duration: medicationForm.duration,
+                    route: medicationForm.route,
+                    instructions: medicationForm.instructions
                 })
             });
             if (res.ok) {
-                alert("Medication added successfully");
-                setMedicationForm({ name: "", dosage: "", frequency: "", duration: "" });
+                toast({ title: 'Success', description: 'Medication added successfully' });
+                setMedicationForm({ name: "", dosage: "", frequency: "", duration: "", route: "oral", instructions: "" });
             }
         } catch (error) {
             console.error("Failed to add medication", error);
+            toast({ title: 'Error', description: 'Failed to add medication', variant: 'destructive' });
         }
     };
 
@@ -222,7 +290,7 @@ export default function DoctorOPDPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     encounterId: currentPatient.id,
-                    patientId: currentPatient.patient.id,
+                    patientId: currentPatient.Patient.id,
                     orderType: "lab",
                     orderCode: selectedLabTest,
                     orderName: selectedLabTest,
@@ -235,6 +303,59 @@ export default function DoctorOPDPage() {
             }
         } catch (error) {
             console.error("Failed to prescribe lab test", error);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'prescription' | 'note') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({ title: 'Error', description: 'Image must be less than 5MB', variant: 'destructive' });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const imageData = reader.result as string;
+
+                if (type === 'prescription') {
+                    setPrescriptionImage(imageData);
+                    setPrescriptionOcrText('');
+                } else {
+                    setNoteImage(imageData);
+                    setNoteOcrText('');
+                }
+
+                // Trigger OCR extraction
+                setOcrLoading(true);
+                try {
+                    const response = await fetch('/api/ocr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData }),
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        if (type === 'prescription') {
+                            setPrescriptionOcrText(result.text || '');
+                        } else {
+                            setNoteOcrText(result.text || '');
+                            // Auto-append to note content if empty or ask user? 
+                            // Let's append it with a newline if content exists
+                            setNoteContent(prev => prev ? `${prev}\n\n[OCR Extracted]:\n${result.text}` : result.text);
+                        }
+                        toast({ title: 'Success', description: 'Text extracted from image' });
+                    } else {
+                        console.error('OCR failed:', result.error);
+                        toast({ title: 'OCR Error', description: result.error || 'Could not extract text', variant: 'destructive' });
+                    }
+                } catch (err) {
+                    console.error('OCR extraction failed:', err);
+                    toast({ title: 'OCR Error', description: 'Could not extract text from image', variant: 'destructive' });
+                } finally {
+                    setOcrLoading(false);
+                }
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -274,10 +395,10 @@ export default function DoctorOPDPage() {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="outline">#{item.tokenNumber}</Badge>
-                                                    <span className="font-medium">{item.patient.name}</span>
+                                                    <span className="font-medium">{item.Patient.name}</span>
                                                 </div>
                                                 <div className="text-sm text-muted-foreground mt-1">
-                                                    {item.patient.gender}, {new Date().getFullYear() - new Date(item.patient.dob).getFullYear()}y
+                                                    {item.Patient.gender}, {new Date().getFullYear() - new Date(item.Patient.dob).getFullYear()}y
                                                 </div>
                                             </div>
                                             <Button size="sm" onClick={() => callInPatient(item)}>
@@ -300,9 +421,9 @@ export default function DoctorOPDPage() {
                                     <div className="flex items-center gap-3">
                                         <User className="h-8 w-8 text-primary" />
                                         <div>
-                                            <div className="text-xl">{currentPatient.patient.name}</div>
+                                            <div className="text-xl">{currentPatient.Patient.name}</div>
                                             <div className="text-sm text-muted-foreground font-normal">
-                                                UHID: {currentPatient.patient.uhid}
+                                                UHID: {currentPatient.Patient.uhid}
                                             </div>
                                         </div>
                                     </div>
@@ -330,18 +451,80 @@ export default function DoctorOPDPage() {
                                 </TabsList>
                                 <TabsContent value="prescription" className="mt-4">
                                     <div className="space-y-4">
+                                        <div className="mb-6 p-4 border-2 border-dashed rounded-lg">
+                                            <Label className="flex items-center gap-2 mb-2"><ImageIcon className="w-4 h-4" />Prescription Image (Optional)</Label>
+                                            <p className="text-xs text-muted-foreground mb-3">Upload a handwritten or scanned prescription image</p>
+                                            {prescriptionImage ? (
+                                                <div className="relative inline-block">
+                                                    <img src={prescriptionImage} alt="Prescription" className="max-h-48 rounded-lg border" />
+                                                    <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => { setPrescriptionImage(null); setPrescriptionOcrText(''); }}>
+                                                        <X className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex items-center justify-center gap-2 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                                    <Upload className="w-5 h-5 text-muted-foreground" />
+                                                    <span className="text-sm text-muted-foreground">Click to upload image</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'prescription')} />
+                                                </label>
+                                            )}
+
+                                            {/* OCR Extracted Text Section */}
+                                            {prescriptionImage && (
+                                                <div className="mt-4">
+                                                    <Label className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4" />Extracted Prescription Text</Label>
+                                                    {ocrLoading ? (
+                                                        <div className="flex items-center gap-2 p-4 bg-muted/30 rounded-lg">
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            <span className="text-sm text-muted-foreground">Extracting text from image...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <textarea
+                                                            className="w-full p-3 border rounded-lg min-h-[100px] resize-none text-sm"
+                                                            placeholder="OCR extracted text will appear here. You can edit it if needed."
+                                                            value={prescriptionOcrText}
+                                                            onChange={(e) => setPrescriptionOcrText(e.target.value)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium">Medicine Name</label>
-                                                <input
-                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    placeholder="e.g. Paracetamol"
-                                                    value={medicationForm.name}
-                                                    onChange={(e) => setMedicationForm({ ...medicationForm, name: e.target.value })}
-                                                />
+                                            <div className="space-y-2 relative col-span-2">
+                                                <label className="text-sm font-medium">Medicine Name *</label>
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                    <input
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background pl-8 pr-3 py-2 text-sm"
+                                                        placeholder="Start typing to search medicines..."
+                                                        value={medicationForm.name}
+                                                        onChange={(e) => handleMedicationNameChange(e.target.value)}
+                                                        onFocus={() => setShowMedSuggestions(true)}
+                                                        onBlur={() => setTimeout(() => setShowMedSuggestions(false), 200)}
+                                                    />
+                                                    {medSearchLoading && (
+                                                        <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                                                    )}
+                                                </div>
+                                                {showMedSuggestions && medicationSuggestions.length > 0 && (
+                                                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                                        {medicationSuggestions.map((med) => (
+                                                            <div
+                                                                key={med.id}
+                                                                className="px-3 py-2 hover:bg-muted cursor-pointer text-sm"
+                                                                onClick={() => selectMedication(med)}
+                                                            >
+                                                                <div className="font-medium">{med.name}</div>
+                                                                {med.genericName && (
+                                                                    <div className="text-xs text-muted-foreground">{med.genericName}</div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium">Dosage</label>
+                                                <label className="text-sm font-medium">Dosage *</label>
                                                 <input
                                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                                     placeholder="e.g. 500mg"
@@ -350,13 +533,23 @@ export default function DoctorOPDPage() {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium">Frequency</label>
-                                                <input
+                                                <label className="text-sm font-medium">Frequency *</label>
+                                                <select
                                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    placeholder="e.g. BD"
                                                     value={medicationForm.frequency}
                                                     onChange={(e) => setMedicationForm({ ...medicationForm, frequency: e.target.value })}
-                                                />
+                                                >
+                                                    <option value="">Select frequency</option>
+                                                    <option value="OD">OD (Once daily)</option>
+                                                    <option value="BD">BD (Twice daily)</option>
+                                                    <option value="TDS">TDS (Thrice daily)</option>
+                                                    <option value="QID">QID (Four times daily)</option>
+                                                    <option value="PRN">PRN (As needed)</option>
+                                                    <option value="STAT">STAT (Immediately)</option>
+                                                    <option value="HS">HS (At bedtime)</option>
+                                                    <option value="AC">AC (Before meals)</option>
+                                                    <option value="PC">PC (After meals)</option>
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium">Duration</label>
@@ -365,6 +558,32 @@ export default function DoctorOPDPage() {
                                                     placeholder="e.g. 5 days"
                                                     value={medicationForm.duration}
                                                     onChange={(e) => setMedicationForm({ ...medicationForm, duration: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium">Route</label>
+                                                <select
+                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                    value={medicationForm.route}
+                                                    onChange={(e) => setMedicationForm({ ...medicationForm, route: e.target.value })}
+                                                >
+                                                    <option value="oral">Oral</option>
+                                                    <option value="iv">IV (Intravenous)</option>
+                                                    <option value="im">IM (Intramuscular)</option>
+                                                    <option value="sc">SC (Subcutaneous)</option>
+                                                    <option value="topical">Topical</option>
+                                                    <option value="inhalation">Inhalation</option>
+                                                    <option value="sublingual">Sublingual</option>
+                                                    <option value="rectal">Rectal</option>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2 col-span-2">
+                                                <label className="text-sm font-medium">Instructions</label>
+                                                <textarea
+                                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
+                                                    placeholder="e.g. Take with food, avoid sunlight..."
+                                                    value={medicationForm.instructions}
+                                                    onChange={(e) => setMedicationForm({ ...medicationForm, instructions: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -423,6 +642,29 @@ export default function DoctorOPDPage() {
                                 </TabsContent>
                                 <TabsContent value="notes" className="mt-4">
                                     <div className="space-y-4">
+                                        <div className="mb-4 p-4 border-2 border-dashed rounded-lg">
+                                            <Label className="flex items-center gap-2 mb-2"><ImageIcon className="w-4 h-4" />Clinical Note Image (Optional)</Label>
+                                            <p className="text-xs text-muted-foreground mb-3">Upload handwritten notes to auto-extract text</p>
+                                            {noteImage ? (
+                                                <div className="relative inline-block">
+                                                    <img src={noteImage} alt="Clinical Note" className="max-h-48 rounded-lg border" />
+                                                    <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={() => { setNoteImage(null); setNoteOcrText(''); }}>
+                                                        <X className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <label className="flex items-center justify-center gap-2 p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                                                    <Upload className="w-5 h-5 text-muted-foreground" />
+                                                    <span className="text-sm text-muted-foreground">Click to upload image</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'note')} />
+                                                </label>
+                                            )}
+                                            {ocrLoading && !noteOcrText && (
+                                                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                                                    <Loader2 className="w-4 h-4 animate-spin" /> Extracting text...
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Clinical Notes</label>
                                             <textarea

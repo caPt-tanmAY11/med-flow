@@ -246,6 +246,7 @@ export async function POST(request: NextRequest) {
 
                     await (prisma as any).oPDQueue.create({
                         data: {
+                            id: crypto.randomUUID(),
                             patientId: data.patientId,
                             doctorId: data.primaryDoctorId,
                             tokenNumber: newTokenNumber,

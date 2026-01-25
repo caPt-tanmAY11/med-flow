@@ -46,7 +46,7 @@ export async function GET(req: Request) {
                         medications: true
                     }
                 },
-                orders: true, // Lab orders
+                orders: true,
                 vitalSigns: true,
                 diagnoses: true,
                 patient: {
@@ -60,14 +60,28 @@ export async function GET(req: Request) {
             }
         });
 
-        // Transform to a friendlier format if needed, or return as is
+        // Fetch doctor names for all encounters that have primaryDoctorId
+        const doctorIds = encounters
+            .map(enc => enc.primaryDoctorId)
+            .filter((id): id is string => id !== null);
+
+        const doctors = doctorIds.length > 0
+            ? await prisma.user.findMany({
+                where: { id: { in: doctorIds } },
+                select: { id: true, name: true }
+            })
+            : [];
+
+        const doctorMap = new Map(doctors.map(d => [d.id, d.name]));
+
+        // Transform to a friendlier format
         const history = encounters.map(enc => ({
             id: enc.id,
             date: enc.createdAt,
             type: enc.type,
             title: enc.type === 'OPD' ? 'OPD Consultation' : enc.type === 'IPD' ? 'Inpatient Admission' : 'Emergency Visit',
-            description: enc.diagnoses.map(d => d.description).join(", ") || "No diagnosis recorded",
-            doctor: enc.primaryDoctorId ? "Dr. " + enc.primaryDoctorId : "Unknown Doctor", // Ideally fetch doctor name
+            description: enc.diagnoses.map((d: { description: string }) => d.description).join(", ") || "No diagnosis recorded",
+            doctor: enc.primaryDoctorId ? "Dr. " + (doctorMap.get(enc.primaryDoctorId) || "Unknown") : "Unknown Doctor",
             details: {
                 notes: enc.clinicalNotes,
                 prescriptions: enc.prescriptions,

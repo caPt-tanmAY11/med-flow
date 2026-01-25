@@ -91,10 +91,28 @@ export default function PatientAssignPage() {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
-    const handleSelectPatient = (patient: Patient) => {
+    // State for active encounter warning
+    const [activeEncounterWarning, setActiveEncounterWarning] = useState<string | null>(null);
+
+    const handleSelectPatient = async (patient: Patient) => {
         setSelectedPatient(patient);
         setSearchQuery("");
         setSuggestions([]);
+        setActiveEncounterWarning(null);
+
+        // Check if patient has any active encounters
+        try {
+            const res = await fetch(`/api/encounters?patientId=${patient.id}&status=ACTIVE`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.data && data.data.length > 0) {
+                    const types = data.data.map((e: { type: string }) => e.type).join(', ');
+                    setActiveEncounterWarning(`This patient already has active visit(s): ${types}. End those before creating a new one of the same type.`);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to check active encounters", error);
+        }
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,6 +203,14 @@ export default function PatientAssignPage() {
                 setWard("");
                 setFile(null);
                 setOcrText("");
+            } else if (res.status === 409) {
+                toast({
+                    title: "Patient Already Assigned",
+                    description: result.error || "This patient already has an active visit of this type.",
+                    variant: "destructive"
+                });
+                // Optional: Redirect to the existing encounter if ID is provided
+                // if (result.existingEncounterId) { ... }
             } else {
                 toast({
                     title: "Assignment Failed",
@@ -266,6 +292,12 @@ export default function PatientAssignPage() {
                                 <div><span className="font-semibold">Gender:</span> {selectedPatient.gender}</div>
                                 <div><span className="font-semibold">DOB:</span> {new Date(selectedPatient.dob).toLocaleDateString()}</div>
                                 <div><span className="font-semibold">Contact:</span> {selectedPatient.contact || "N/A"}</div>
+                                {activeEncounterWarning && (
+                                    <div className="mt-3 p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-md text-yellow-800 dark:text-yellow-300 text-xs flex items-start gap-2">
+                                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                        <span>{activeEncounterWarning}</span>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
